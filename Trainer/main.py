@@ -25,6 +25,8 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 
+
+
 _batch_size = 1
 _buffer_size = 10000
 
