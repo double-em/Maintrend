@@ -25,10 +25,6 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 
-# prefix = ""
-# run_name = prefix + str(datetime.datetime.now().microsecond) + "-"
-run_name = ""
-
 _batch_size = 1
 _buffer_size = 10000
 
@@ -170,23 +166,23 @@ fitted_models = {}
 
 print("\n")
 
-print("Beginning trainning of Model:", (run_name + "std"))
-fitted_models["std"] = compile_and_fit(model_std, (run_name + "std"))
+print("Beginning trainning of Model:", "std")
+fitted_models["std"] = compile_and_fit(model_std, "std")
 
-print("Beginning trainning of Model:", (run_name + "wide"))
-fitted_models["wide"] = compile_and_fit(model_wide, (run_name + "wide"))
+print("Beginning trainning of Model:", "wide")
+fitted_models["wide"] = compile_and_fit(model_wide, "wide")
 
-print("Beginning trainning of Model:", (run_name + "mega_wide"))
-fitted_models["mega_wide"] = compile_and_fit(model_mega_wide, (run_name + "mega_wide"))
+print("Beginning trainning of Model:", "mega_wide")
+fitted_models["mega_wide"] = compile_and_fit(model_mega_wide, "mega_wide")
 
-print("Beginning trainning of Model:", (run_name + "deep"))
-fitted_models["deep"] = compile_and_fit(model_deep, (run_name + "deep"))
+print("Beginning trainning of Model:", "deep")
+fitted_models["deep"] = compile_and_fit(model_deep, "deep")
 
-print("Beginning trainning of Model:", (run_name + "model_shallow_deep"))
-fitted_models["model_shallow_deep"] = compile_and_fit(model_shallow_deep, (run_name + "model_shallow_deep"))
+print("Beginning trainning of Model:", "model_shallow_deep")
+fitted_models["model_shallow_deep"] = compile_and_fit(model_shallow_deep, "model_shallow_deep")
 
-print("Beginning trainning of Model:", (run_name + "wide_deep"))
-fitted_models["wide_deep"] = compile_and_fit(model_wide_deep, (run_name + "wide_deep"))
+print("Beginning trainning of Model:", "wide_deep")
+fitted_models["wide_deep"] = compile_and_fit(model_wide_deep, "wide_deep")
 
 # Links
 # https://www.tensorflow.org/api_docs/python/tf/keras/Model?version=nightly#fit
