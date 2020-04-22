@@ -24,7 +24,7 @@ def hello_api():
 @app.route('/v1/datapull', methods=['GET'])
 def api_datapull_all():
 
-    print("Got API call!")
+    print("Got API call for Datahandler!")
 
     if 'apikey' in request.args and 'channel_id' in request.args and 'from' in request.args and 'to' in request.args:
         try:
@@ -148,7 +148,7 @@ def api_datapull_all():
         if row[1] == "Planned repair":
             maintenance_timestamps.append(row[2])
 
-    if len(maintenance_timestamps):
+    if len(maintenance_timestamps) < 1:
         return "No maintenances found in provided timeframe."
 
     predDict = {
