@@ -1,0 +1,13 @@
+version: '3.4'
+
+services:
+  datahandler:
+    image: datahandler
+    build:
+      context: .
+      dockerfile: DatahandlerAPI/Dockerfile
+  predictor:
+    image: predictor
+    build:
+      context: .
+      dockerfile: Predictor/Dockerfile
