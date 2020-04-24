@@ -186,6 +186,8 @@ fitted_models["model_shallow_deep"] = compile_and_fit(model_shallow_deep, "model
 print("Beginning trainning of Model:", "wide_deep")
 fitted_models["wide_deep"] = compile_and_fit(model_wide_deep, "wide_deep")
 
+model_std.save("models/model_std")
+
 # Links
 # https://www.tensorflow.org/api_docs/python/tf/keras/Model?version=nightly#fit
 # https://www.tensorflow.org/api_docs/python/tf/keras/callbacks/TensorBoard?version=nightly
