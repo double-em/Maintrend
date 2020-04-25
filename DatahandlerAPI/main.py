@@ -457,3 +457,16 @@ def api_datapull_all():
     return dfPred.to_json()
 
 app.run(host='0.0.0.0', port=5000)
+
+# Links
+# https://stackoverflow.com/questions/18458839/how-can-i-get-the-current-date-and-time-in-the-terminal-and-set-a-custom-command
+# https://docs.docker.com/compose/networking/
+# https://docs.docker.com/compose/gettingstarted/#step-5-edit-the-compose-file-to-add-a-bind-mount
+# https://docs.docker.com/engine/reference/builder/#expose
+# https://stackoverflow.com/questions/22111060/what-is-the-difference-between-expose-and-publish-in-docker
+# https://stackoverflow.com/questions/41428382/connection-was-reset-error-on-flask-server
+# http://containertutorials.com/docker-compose/flask-simple-app.html
+# https://hub.docker.com/_/python?tab=description&page=1
+# https://flask.palletsprojects.com/en/1.1.x/testing/#testing-json-apis
+# https://programminghistorian.org/en/lessons/creating-apis-with-python-and-flask#creating-a-basic-flask-application
+# https://www.codementor.io/@sagaragarwal94/building-a-basic-restful-api-in-python-58k02xsiq

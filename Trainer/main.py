@@ -226,7 +226,16 @@ for i in range(predictions_count):
 print("\nReal world Mean Absolute Error: %s day(s)" % (total_difference / predictions_count))
 print("Mean Absolute Error: %s day(s)" % (total_difference_t / predictions_count))
 
-
+# New Links
+# https://www.tensorflow.org/api_docs/python/tf/keras/models/load_model?version=nightly
+# https://www.tensorflow.org/api_docs/python/tf/keras/models/save_model?version=nightly
+# https://www.tensorflow.org/guide/keras/save_and_serialize
+# https://tutorialdeep.com/knowhow/round-float-to-2-decimal-places-python/
+# Getting started with Tensorflow in Google Colaboratory https://www.youtube.com/watch?v=PitcORQSjNM
+# Get started with Google Colab https://www.youtube.com/watch?v=inN8seMm7UI
+# https://jupyter.org/install
+# https://research.google.com/colaboratory/local-runtimes.html
+# https://www.analyticsvidhya.com/blog/2016/08/evolution-core-concepts-deep-learning-neural-networks/
 
 # Links
 # https://www.tensorflow.org/api_docs/python/tf/keras/Model?version=nightly#fit
@@ -261,3 +270,4 @@ print("Mean Absolute Error: %s day(s)" % (total_difference_t / predictions_count
 # https://stackoverflow.com/questions/35911252/disable-tensorflow-debugging-information
 # https://stackoverflow.com/questions/509211/understanding-slice-notation
 # https://www.analyticsvidhya.com/blog/2018/10/predicting-stock-price-machine-learningnd-deep-learning-techniques-python/
+# https://www.analyticsvidhya.com/blog/2017/12/fundamentals-of-deep-learning-introduction-to-lstm/
