@@ -198,7 +198,7 @@ def model_builder(name, hparams):
 session_version = 0
 
 for output_units in hp_output_units.domain.values:
-    for hidden_num_layers in (hp_hidden_num_layers.domain.min_value, hp_hidden_num_layers.domain.max_value):
+    for hidden_num_layers in range(hp_hidden_num_layers.domain.min_value, (hp_hidden_num_layers.domain.max_value + 1)):
         for optimizer in hp_optimizer.domain.values:
             hparams = {
                 hp_hidden_num_layers: hidden_num_layers,
