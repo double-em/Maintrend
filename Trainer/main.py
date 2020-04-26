@@ -27,19 +27,32 @@ from sklearn.preprocessing import MinMaxScaler
 from tensorflow.python import debug as tf_debug
 from tensorboard.plugins.hparams import api as hp
 
-model_version = "7"
+model_version = 10
 
 print("\nVisible Devices:", tf.config.get_visible_devices())
 
-# tf.config.experimental_run_functions_eagerly(True)
+tf.config.experimental_run_functions_eagerly(True)
 
 _batch_size = 1
 _buffer_size = 10000
 
-_max_epochs = 400
+_max_epochs = 100
 _back_in_time = 60 # Days
 _step = 1 # Days to offset next dataset
 _target_size = 1 # How many to predict
+
+
+
+### Hyperparamters
+hp_hidden_num_layers = hp.HParam('hidden_num_layers', hp.IntInterval(0, 4))
+hp_optimizer = hp.HParam('optimizer', hp.Discrete(['nadam', 'adam', 'rmsprop', 'sgd']))
+hp_output_units = hp.HParam('output_units', hp.Discrete([50, 300, 600]))
+
+hp.hparams_config(
+    hparams=[hp_hidden_num_layers, hp_optimizer, hp_output_units],
+    metrics=[hp.Metric('mae', display_name="Mean Absolute Error")]
+)
+
 
 
 ### Optimizers
@@ -128,7 +141,10 @@ val_dataset = val_dataset.cache().shuffle(_buffer_size).batch(_batch_size).repea
 test_dataset = tf.data.Dataset.from_tensor_slices(X_test)
 test_dataset = test_dataset.cache().batch(_batch_size)
 
-### Trainer loop
+
+
+
+
 
 
 ### Models
@@ -186,30 +202,29 @@ model_wide_deep = Sequential([
 # models.append(model_wide_deep)
 
 
-#hp.hp
-
 
 ### Define callbacks
-def get_callbacks(name):
-    log_dir_path = log_dir + name + "/" + model_version
+def get_callbacks(name, hparams):
+    log_dir_path = log_dir + str(model_version) + "/" + name
     return [
-        EarlyStopping(monitor="val_loss", patience=20),
+        EarlyStopping(monitor="val_loss", patience=10, min_delta=0.01),
         TensorBoard(
             log_dir=log_dir_path,
             histogram_freq=1,
             embeddings_freq=1,
-            profile_batch=2
-        )#,
-        #hp.KerasCallback(log_dir_path, hparams)
+            profile_batch=4
+        ),
+        hp.KerasCallback(log_dir_path, hparams, name)
     ]
 
 
 
 ### Compile and Fit
-def compile_and_fit(model, name="", optimizer=_optimizer, loss=_loss, max_epochs=_max_epochs):
+def compile_and_fit(model, name, hparams, optimizer=_optimizer, loss=_loss, max_epochs=_max_epochs):
     model.compile(loss=loss, optimizer=optimizer)
 
     model.summary()
+    print("Optimizer:", model.optimizer)
 
     print("\nTraining model...")
 
@@ -220,29 +235,72 @@ def compile_and_fit(model, name="", optimizer=_optimizer, loss=_loss, max_epochs
         validation_data=val_dataset, 
         validation_steps=len(y_val), 
         verbose=1, 
-        callbacks=get_callbacks(name))
+        callbacks=get_callbacks(name, hparams))
     
     return model_history
 
 fitted_models = {}
 print("\n\n")
 
-for model_key in models:
+#for model_key in models:
 
-    modelname = str(model_key.name)
+#    modelname = str(model_key.name)
 
     ### WARNING: Kills PC memory
     # tf.profiler.experimental.start(log_dir + modelname, tf.profiler.experimental.ProfilerOptions(3,1))
-    print("Beginning training of Model:", modelname)
-    fitted_models[modelname] = compile_and_fit(model=model_key, name=modelname)
+#    print("Beginning training of Model:", modelname)
+#    fitted_models[modelname] = compile_and_fit(model=model_key, name=modelname)
     # tf.profiler.experimental.stop()
 
-    print("Saving model:", modelname)
+#    print("Saving model:", modelname)
     # Model version is NEEDED or Tensorflow Serve cant find any "serverable versions"
-    save_path = "%s/%s/%s" % (models_dir, modelname, model_version)
-    model_key.save(save_path)
+#    save_path = "%s/%s/%s" % (models_dir, modelname, str(model_version))
+#    model_key.save(save_path)
 
-    tf.keras.models.save_model(model_key, save_path)
+#    tf.keras.models.save_model(model_key, save_path)
+
+
+
+def model_builder(name, hparams):
+
+    model = Sequential(name=name)
+
+    if hparams[hp_hidden_num_layers] == 0:
+        model.add(LSTM(hparams[hp_output_units], input_shape=X_train[0].shape))
+    else:
+        model.add(LSTM(hparams[hp_output_units], input_shape=X_train[0].shape, return_sequences=True))
+
+    for i in range(hparams[hp_hidden_num_layers]):
+        if i == (hparams[hp_hidden_num_layers] - 1):
+            model.add(LSTM(hparams[hp_output_units]))
+        else:
+            model.add(LSTM(hparams[hp_output_units], input_shape=X_train[0].shape, return_sequences=True))
+
+    model.add(Dense(1))
+
+    return model
+
+session_version = 0
+
+### Trainer loop
+for output_units in hp_output_units.domain.values:
+    for hidden_num_layers in (hp_hidden_num_layers.domain.min_value, hp_hidden_num_layers.domain.max_value):
+        for optimizer in hp_optimizer.domain.values:
+            hparams = {
+                hp_hidden_num_layers: hidden_num_layers,
+                hp_optimizer: optimizer,
+                hp_output_units: output_units
+            }
+
+            print("Starting session:", session_version)
+            print({h.name: hparams[h] for h in hparams})
+
+            model_tmp = model_builder(str(session_version), hparams)
+            compile_and_fit(model_tmp, model_tmp.name, hparams, hparams[hp_optimizer])
+
+            session_version += 1
+
+
 
 
 
@@ -264,37 +322,37 @@ for model_key in models:
 #print("Beginning trainning of Model:", "wide_deep")
 #fitted_models["wide_deep"] = compile_and_fit(model_wide_deep, "wide_deep")
 
-print("\n\n\nBeginning predictions...")
+# print("\n\n\nBeginning predictions...")
 
-predictions = model_shallow_deep.predict(test_dataset, verbose=1)
-predictions_count = len(predictions)
-print("Predicions:", predictions_count)
+# predictions = model_shallow_deep.predict(test_dataset, verbose=1)
+# predictions_count = len(predictions)
+# print("Predicions:", predictions_count)
 
-total_difference = 0
-total_difference_t = 0
-for i in range(predictions_count):
+# total_difference = 0
+# total_difference_t = 0
+# for i in range(predictions_count):
 
-    # Used round and int becouse without int you get some '-0.0' numbers.
-    prediction_t = predictions[i][0]
-    prediction = int(round(prediction_t))
+#     # Used round and int becouse without int you get some '-0.0' numbers.
+#     prediction_t = predictions[i][0]
+#     prediction = int(round(prediction_t))
 
-    actual_t = y_test[i]
-    actual = int(actual_t)
+#     actual_t = y_test[i]
+#     actual = int(actual_t)
 
-    difference_t = np.sqrt(np.power((actual_t - prediction_t), 2))
-    difference = np.sqrt(np.power((actual - prediction), 2))
+#     difference_t = np.sqrt(np.power((actual_t - prediction_t), 2))
+#     difference = np.sqrt(np.power((actual - prediction), 2))
 
-    total_difference_t += difference_t
+#     total_difference_t += difference_t
     
-    if difference == 0:
-        status = "[ ]"
-    else:
-        total_difference += difference
-        status = "[x]"
-    print("Predicted %s day(s), Actual %s day(s), Difference %s day(s) - %s" % (prediction, actual, difference, status))
+#     if difference == 0:
+#         status = "[ ]"
+#     else:
+#         total_difference += difference
+#         status = "[x]"
+#     print("Predicted %s day(s), Actual %s day(s), Difference %s day(s) - %s" % (prediction, actual, difference, status))
 
-print("\nReal world Mean Absolute Error: %s day(s)" % (total_difference / predictions_count))
-print("Mean Absolute Error: %s day(s)" % (total_difference_t / predictions_count))
+# print("\nReal world Mean Absolute Error: %s day(s)" % (total_difference / predictions_count))
+# print("Mean Absolute Error: %s day(s)" % (total_difference_t / predictions_count))
 
 
 
