@@ -66,6 +66,8 @@ _loss = keras.losses.mean_absolute_error
 # keras.losses.mean_squared_error
 # keras.losses.mean_absolute_error
 
+
+
 train = api.pulldata2()
 
 time_now_string = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -102,7 +104,6 @@ X, y = handle_data(
     _step, 
     single_step=True)
 
-# arr = list(range(len(X)))
 train_csv = pd.DataFrame(rescaledX, columns=[
     "maintenance_day",
     "produced_today",
@@ -111,17 +112,7 @@ train_csv = pd.DataFrame(rescaledX, columns=[
     "day_of_week"
  ])
 
-#train_csv['day_of_week'] = train[:,1]
 train_csv['days_to_maintenance'] = train[:,-1]
-
-# train_csv = np.hstack((X, y))
-
-# train_csv = X
-
-# for i in range(len(X)):
-#     for j in range(len(X[i])):
-#         train_csv[i][j][5] = train[i*len(X[i])+j:, -1]
-
 train_csv.to_csv("/models/train.csv", index=False)
 
 X_train, X_tmp, y_train, y_tmp = train_test_split(X, y, test_size=0.20)
@@ -140,10 +131,6 @@ val_dataset = val_dataset.cache().shuffle(_buffer_size).batch(_batch_size).repea
 
 test_dataset = tf.data.Dataset.from_tensor_slices(X_test)
 test_dataset = test_dataset.cache().batch(_batch_size)
-
-
-
-
 
 
 
@@ -239,25 +226,7 @@ def compile_and_fit(model, name, hparams, optimizer=_optimizer, loss=_loss, max_
     
     return model_history
 
-fitted_models = {}
 print("\n\n")
-
-#for model_key in models:
-
-#    modelname = str(model_key.name)
-
-    ### WARNING: Kills PC memory
-    # tf.profiler.experimental.start(log_dir + modelname, tf.profiler.experimental.ProfilerOptions(3,1))
-#    print("Beginning training of Model:", modelname)
-#    fitted_models[modelname] = compile_and_fit(model=model_key, name=modelname)
-    # tf.profiler.experimental.stop()
-
-#    print("Saving model:", modelname)
-    # Model version is NEEDED or Tensorflow Serve cant find any "serverable versions"
-#    save_path = "%s/%s/%s" % (models_dir, modelname, str(model_version))
-#    model_key.save(save_path)
-
-#    tf.keras.models.save_model(model_key, save_path)
 
 
 
@@ -301,26 +270,6 @@ for output_units in hp_output_units.domain.values:
             session_version += 1
 
 
-
-
-
-#print("Beginning trainning of Model:", "std")
-#fitted_models["std"] = compile_and_fit(model_std, "std")
-
-#print("Beginning trainning of Model:", "wide")
-#fitted_models["wide"] = compile_and_fit(model_wide, "wide")
-
-#print("Beginning trainning of Model:", "mega_wide")
-#fitted_models["mega_wide"] = compile_and_fit(model_mega_wide, "mega_wide")
-
-#print("Beginning trainning of Model:", "deep")
-#fitted_models["deep"] = compile_and_fit(model_deep, "deep")
-
-#print("Beginning trainning of Model:", model_shallow_deep.name)
-#fitted_models["model_shallow_deep"] = compile_and_fit(model_shallow_deep, "model_shallow_deep")
-
-#print("Beginning trainning of Model:", "wide_deep")
-#fitted_models["wide_deep"] = compile_and_fit(model_wide_deep, "wide_deep")
 
 # print("\n\n\nBeginning predictions...")
 
