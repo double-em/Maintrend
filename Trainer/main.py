@@ -134,62 +134,6 @@ test_dataset = test_dataset.cache().batch(_batch_size)
 
 
 
-### Models
-models = []
-
-model_std = Sequential([
-    LSTM(50, input_shape=X_train[0].shape, return_sequences=True),
-    LSTM(50),
-    Dense(1)
-], name="model_std")
-# models.append(model_std)
-
-
-model_wide = Sequential([
-    LSTM(300, input_shape=X_train[0].shape, return_sequences=True),
-    LSTM(300),
-    Dense(1)
-], name="model_wide")
-# models.append(model_wide)
-
-model_mega_wide = Sequential([
-    LSTM(600, input_shape=X_train[0].shape, return_sequences=True),
-    LSTM(600),
-    Dense(1)
-], name="model_mega_wide")
-# models.append(model_mega_wide)
-
-model_deep = Sequential([
-    LSTM(50, input_shape=X_train[0].shape, return_sequences=True),
-    LSTM(50, input_shape=X_train[0].shape, return_sequences=True),
-    LSTM(50, input_shape=X_train[0].shape, return_sequences=True),
-    LSTM(50, input_shape=X_train[0].shape, return_sequences=True),
-    LSTM(50),
-    Dense(1)
-], name="model_deep")
-# models.append(model_deep)
-
-model_shallow_deep = Sequential([
-    LSTM(50, input_shape=X_train[0].shape, return_sequences=True),
-    LSTM(50, input_shape=X_train[0].shape, return_sequences=True),
-    LSTM(50),
-    Dense(1) 
-    
-], name="model_shallow_deep")
-models.append(model_shallow_deep)
-
-model_wide_deep = Sequential([
-    LSTM(300, input_shape=X_train[0].shape, return_sequences=True),
-    LSTM(300, input_shape=X_train[0].shape, return_sequences=True),
-    LSTM(300, input_shape=X_train[0].shape, return_sequences=True),
-    LSTM(300, input_shape=X_train[0].shape, return_sequences=True),
-    LSTM(300),
-    Dense(1)
-], name="model_wide_deep")
-# models.append(model_wide_deep)
-
-
-
 ### Define callbacks
 def get_callbacks(name, hparams):
     log_dir_path = log_dir + str(model_version) + "/" + name
@@ -230,6 +174,7 @@ print("\n\n")
 
 
 
+### Dynamic model builder
 def model_builder(name, hparams):
 
     model = Sequential(name=name)
@@ -249,9 +194,11 @@ def model_builder(name, hparams):
 
     return model
 
-session_version = 0
+
 
 ### Trainer loop
+session_version = 0
+
 for output_units in hp_output_units.domain.values:
     for hidden_num_layers in (hp_hidden_num_layers.domain.min_value, hp_hidden_num_layers.domain.max_value):
         for optimizer in hp_optimizer.domain.values:
