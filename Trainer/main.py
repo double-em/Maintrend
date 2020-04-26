@@ -31,8 +31,6 @@ model_version = 10
 
 print("\nVisible Devices:", tf.config.get_visible_devices())
 
-tf.config.experimental_run_functions_eagerly(True)
-
 _batch_size = 1
 _buffer_size = 10000
 
