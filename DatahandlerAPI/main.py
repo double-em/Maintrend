@@ -458,6 +458,8 @@ def api_datapull_all():
 
 app.run(host='0.0.0.0', port=5000)
 
+# Ipaddress should be 0.0.0.0 or it binds to wrong endpoint and can't be reached.
+
 # Links
 # https://stackoverflow.com/questions/18458839/how-can-i-get-the-current-date-and-time-in-the-terminal-and-set-a-custom-command
 # https://docs.docker.com/compose/networking/

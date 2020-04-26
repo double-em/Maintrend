@@ -24,19 +24,22 @@ from tensorflow.keras.callbacks import EarlyStopping, TensorBoard
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
+from tensorflow.python import debug as tf_debug
+from tensorboard.plugins.hparams import api as hp
 
+model_version = "7"
 
+print("\nVisible Devices:", tf.config.get_visible_devices())
 
-log_dir = "logs/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+# tf.config.experimental_run_functions_eagerly(True)
 
 _batch_size = 1
 _buffer_size = 10000
 
-_max_epochs = 20
+_max_epochs = 400
 _back_in_time = 60 # Days
 _step = 1 # Days to offset next dataset
 _target_size = 1 # How many to predict
-
 
 
 ### Optimizers
@@ -52,7 +55,9 @@ _loss = keras.losses.mean_absolute_error
 
 train = api.pulldata2()
 
-
+time_now_string = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+log_dir = "logs/"
+models_dir = "models/"
 
 ### Handle Data ###
 def handle_data(dataset, target, start_index, end_index, history_size, target_size, step, single_step=False):
@@ -69,18 +74,42 @@ def handle_data(dataset, target, start_index, end_index, history_size, target_si
     return data, labels
 
 scaler = MinMaxScaler(feature_range=(0,1))
-rescaledX = scaler.fit_transform(train[:,1:-1])
+rescaledX = scaler.fit_transform(train[:,2:-1])
+
+rescaledX = np.hstack((rescaledX, train[:,1:2]))
 
 print("Making timestep sets (Step size: %s, History: %s days, Target value size: %s day(s))" % (_step, _back_in_time, _target_size))
 
 X, y = handle_data(
-    rescaledX, train[:, 1], 
+    rescaledX, train[:, -1], 
     0, 
     len(train), 
     _back_in_time, 
     _target_size,
     _step, 
     single_step=True)
+
+# arr = list(range(len(X)))
+train_csv = pd.DataFrame(rescaledX, columns=[
+    "maintenance_day",
+    "produced_today",
+    "times_down_today",
+    "amount_down_today",
+    "day_of_week"
+ ])
+
+#train_csv['day_of_week'] = train[:,1]
+train_csv['days_to_maintenance'] = train[:,-1]
+
+# train_csv = np.hstack((X, y))
+
+# train_csv = X
+
+# for i in range(len(X)):
+#     for j in range(len(X[i])):
+#         train_csv[i][j][5] = train[i*len(X[i])+j:, -1]
+
+train_csv.to_csv("/models/train.csv", index=False)
 
 X_train, X_tmp, y_train, y_tmp = train_test_split(X, y, test_size=0.20)
 X_val, X_test, y_val, y_test = train_test_split(X_tmp, y_tmp, test_size=0.50)
@@ -99,26 +128,33 @@ val_dataset = val_dataset.cache().shuffle(_buffer_size).batch(_batch_size).repea
 test_dataset = tf.data.Dataset.from_tensor_slices(X_test)
 test_dataset = test_dataset.cache().batch(_batch_size)
 
+### Trainer loop
 
 
 ### Models
+models = []
+
 model_std = Sequential([
     LSTM(50, input_shape=X_train[0].shape, return_sequences=True),
     LSTM(50),
     Dense(1)
-])
+], name="model_std")
+# models.append(model_std)
+
 
 model_wide = Sequential([
     LSTM(300, input_shape=X_train[0].shape, return_sequences=True),
     LSTM(300),
     Dense(1)
-])
+], name="model_wide")
+# models.append(model_wide)
 
 model_mega_wide = Sequential([
     LSTM(600, input_shape=X_train[0].shape, return_sequences=True),
     LSTM(600),
     Dense(1)
-])
+], name="model_mega_wide")
+# models.append(model_mega_wide)
 
 model_deep = Sequential([
     LSTM(50, input_shape=X_train[0].shape, return_sequences=True),
@@ -127,7 +163,8 @@ model_deep = Sequential([
     LSTM(50, input_shape=X_train[0].shape, return_sequences=True),
     LSTM(50),
     Dense(1)
-])
+], name="model_deep")
+# models.append(model_deep)
 
 model_shallow_deep = Sequential([
     LSTM(50, input_shape=X_train[0].shape, return_sequences=True),
@@ -136,6 +173,7 @@ model_shallow_deep = Sequential([
     Dense(1) 
     
 ], name="model_shallow_deep")
+models.append(model_shallow_deep)
 
 model_wide_deep = Sequential([
     LSTM(300, input_shape=X_train[0].shape, return_sequences=True),
@@ -144,28 +182,39 @@ model_wide_deep = Sequential([
     LSTM(300, input_shape=X_train[0].shape, return_sequences=True),
     LSTM(300),
     Dense(1)
-])
+], name="model_wide_deep")
+# models.append(model_wide_deep)
 
+
+#hp.hp
 
 
 ### Define callbacks
 def get_callbacks(name):
+    log_dir_path = log_dir + name + "/" + model_version
     return [
-        EarlyStopping(monitor="val_loss", patience=10)#,
-        #TensorBoard(log_dir + name, histogram_freq=1)
+        EarlyStopping(monitor="val_loss", patience=20),
+        TensorBoard(
+            log_dir=log_dir_path,
+            histogram_freq=1,
+            embeddings_freq=1,
+            profile_batch=2
+        )#,
+        #hp.KerasCallback(log_dir_path, hparams)
     ]
 
 
 
 ### Compile and Fit
-def compile_and_fit(model, name=None, optimizer=_optimizer, loss=_loss, max_epochs=_max_epochs):
+def compile_and_fit(model, name="", optimizer=_optimizer, loss=_loss, max_epochs=_max_epochs):
     model.compile(loss=loss, optimizer=optimizer)
 
     model.summary()
 
     print("\nTraining model...")
+
     model_history = model.fit(
-        x=train_dataset, 
+        train_dataset, 
         epochs=max_epochs, 
         steps_per_epoch=len(y_train), 
         validation_data=val_dataset, 
@@ -176,8 +225,26 @@ def compile_and_fit(model, name=None, optimizer=_optimizer, loss=_loss, max_epoc
     return model_history
 
 fitted_models = {}
+print("\n\n")
 
-print("\n")
+for model_key in models:
+
+    modelname = str(model_key.name)
+
+    ### WARNING: Kills PC memory
+    # tf.profiler.experimental.start(log_dir + modelname, tf.profiler.experimental.ProfilerOptions(3,1))
+    print("Beginning training of Model:", modelname)
+    fitted_models[modelname] = compile_and_fit(model=model_key, name=modelname)
+    # tf.profiler.experimental.stop()
+
+    print("Saving model:", modelname)
+    # Model version is NEEDED or Tensorflow Serve cant find any "serverable versions"
+    save_path = "%s/%s/%s" % (models_dir, modelname, model_version)
+    model_key.save(save_path)
+
+    tf.keras.models.save_model(model_key, save_path)
+
+
 
 #print("Beginning trainning of Model:", "std")
 #fitted_models["std"] = compile_and_fit(model_std, "std")
@@ -191,10 +258,8 @@ print("\n")
 #print("Beginning trainning of Model:", "deep")
 #fitted_models["deep"] = compile_and_fit(model_deep, "deep")
 
-tf.profiler.experimental.start(log_dir)
-print("Beginning trainning of Model:", "model_shallow_deep")
-fitted_models[model_shallow_deep.name] = compile_and_fit(model_shallow_deep, "model_shallow_deep")
-tf.profiler.experimental.stop()
+#print("Beginning trainning of Model:", model_shallow_deep.name)
+#fitted_models["model_shallow_deep"] = compile_and_fit(model_shallow_deep, "model_shallow_deep")
 
 #print("Beginning trainning of Model:", "wide_deep")
 #fitted_models["wide_deep"] = compile_and_fit(model_wide_deep, "wide_deep")
@@ -217,7 +282,7 @@ for i in range(predictions_count):
     actual = int(actual_t)
 
     difference_t = np.sqrt(np.power((actual_t - prediction_t), 2))
-    difference = actual - prediction
+    difference = np.sqrt(np.power((actual - prediction), 2))
 
     total_difference_t += difference_t
     
@@ -230,6 +295,10 @@ for i in range(predictions_count):
 
 print("\nReal world Mean Absolute Error: %s day(s)" % (total_difference / predictions_count))
 print("Mean Absolute Error: %s day(s)" % (total_difference_t / predictions_count))
+
+
+
+# NOTE: No space on docker volumes = "Fail to find the dnn implementation."
 
 # New Links
 # https://www.tensorflow.org/api_docs/python/tf/keras/models/load_model?version=nightly

@@ -2,6 +2,7 @@
 FROM tensorflow/tensorflow:nightly-gpu-py3
 
 ENV NVIDIA_DRIVER_CAPABILITIES $NVIDIA_DRIVER_CAPABILITIES,video
+ENV NVIDIA_VISIBLE_DEVICES=all
 
 # Keeps Python from generating .pyc files in the container
 ENV PYTHONDONTWRITEBYTECODE 1
