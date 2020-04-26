@@ -27,6 +27,8 @@ from sklearn.preprocessing import MinMaxScaler
 
 
 
+log_dir = "logs/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+
 _batch_size = 1
 _buffer_size = 10000
 
@@ -131,8 +133,9 @@ model_shallow_deep = Sequential([
     LSTM(50, input_shape=X_train[0].shape, return_sequences=True),
     LSTM(50, input_shape=X_train[0].shape, return_sequences=True),
     LSTM(50),
-    Dense(1)
-])
+    Dense(1) 
+    
+], name="model_shallow_deep")
 
 model_wide_deep = Sequential([
     LSTM(300, input_shape=X_train[0].shape, return_sequences=True),
@@ -148,8 +151,8 @@ model_wide_deep = Sequential([
 ### Define callbacks
 def get_callbacks(name):
     return [
-        EarlyStopping(monitor="val_loss", patience=10),
-        TensorBoard("logs/" + name)
+        EarlyStopping(monitor="val_loss", patience=10)#,
+        #TensorBoard(log_dir + name, histogram_freq=1)
     ]
 
 
@@ -188,8 +191,10 @@ print("\n")
 #print("Beginning trainning of Model:", "deep")
 #fitted_models["deep"] = compile_and_fit(model_deep, "deep")
 
+tf.profiler.experimental.start(log_dir)
 print("Beginning trainning of Model:", "model_shallow_deep")
-fitted_models["model_shallow_deep"] = compile_and_fit(model_shallow_deep, "model_shallow_deep")
+fitted_models[model_shallow_deep.name] = compile_and_fit(model_shallow_deep, "model_shallow_deep")
+tf.profiler.experimental.stop()
 
 #print("Beginning trainning of Model:", "wide_deep")
 #fitted_models["wide_deep"] = compile_and_fit(model_wide_deep, "wide_deep")
