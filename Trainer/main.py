@@ -274,6 +274,8 @@ if build_mode:
 
 
 # NOTE: No space on docker volumes = "Fail to find the dnn implementation."
+# After further research looks like it may be Tensorserve "locking" the folder / files
+# and if you train your model at the same time with the same folers it gets that error.
 
 # New Links
 # https://www.tensorflow.org/api_docs/python/tf/keras/models/load_model?version=nightly
