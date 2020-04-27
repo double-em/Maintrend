@@ -237,40 +237,6 @@ if build_mode:
     save_path = "%s/%s/%s" % (models_dir, model_temp.name, str(model_version))
     model_temp.save(save_path)
 
-#    tf.keras.models.save_model(model_key, save_path)
-
-# print("\n\n\nBeginning predictions...")
-
-# predictions = model_shallow_deep.predict(test_dataset, verbose=1)
-# predictions_count = len(predictions)
-# print("Predicions:", predictions_count)
-
-# total_difference = 0
-# total_difference_t = 0
-# for i in range(predictions_count):
-
-#     # Used round and int becouse without int you get some '-0.0' numbers.
-#     prediction_t = predictions[i][0]
-#     prediction = int(round(prediction_t))
-
-#     actual_t = y_test[i]
-#     actual = int(actual_t)
-
-#     difference_t = np.sqrt(np.power((actual_t - prediction_t), 2))
-#     difference = np.sqrt(np.power((actual - prediction), 2))
-
-#     total_difference_t += difference_t
-    
-#     if difference == 0:
-#         status = "[ ]"
-#     else:
-#         total_difference += difference
-#         status = "[x]"
-#     print("Predicted %s day(s), Actual %s day(s), Difference %s day(s) - %s" % (prediction, actual, difference, status))
-
-# print("\nReal world Mean Absolute Error: %s day(s)" % (total_difference / predictions_count))
-# print("Mean Absolute Error: %s day(s)" % (total_difference_t / predictions_count))
-
 
 
 # NOTE: No space on docker volumes = "Fail to find the dnn implementation."
