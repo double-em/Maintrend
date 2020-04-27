@@ -6,6 +6,7 @@ import datetime
 import requests
 import json
 import importlib
+from pathlib import Path
 api = importlib.import_module("API_Puller")
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
@@ -27,7 +28,7 @@ from sklearn.preprocessing import MinMaxScaler
 from tensorflow.python import debug as tf_debug
 from tensorboard.plugins.hparams import api as hp
 
-model_version = 10
+model_version = 20
 
 print("\nVisible Devices:", tf.config.get_visible_devices())
 
@@ -46,12 +47,24 @@ hp_hidden_num_layers = hp.HParam('hidden_num_layers', hp.IntInterval(0, 4))
 hp_optimizer = hp.HParam('optimizer', hp.Discrete(['nadam', 'adam', 'rmsprop', 'sgd']))
 hp_output_units = hp.HParam('output_units', hp.Discrete([50, 300, 600]))
 
+hypertune = False
+
 hp.hparams_config(
     hparams=[hp_hidden_num_layers, hp_optimizer, hp_output_units],
     metrics=[hp.Metric('mae', display_name="Mean Absolute Error")]
 )
 
 
+
+### Build model
+build_mode = True
+
+if build_mode:
+    hparams = {
+        hp_hidden_num_layers: 1,
+        hp_optimizer: 'rmsprop',
+        hp_output_units: 300
+    }
 
 ### Optimizers
 _optimizer = keras.optimizers.Nadam()
@@ -195,26 +208,36 @@ def model_builder(name, hparams):
 
 
 ### Trainer loop
-session_version = 0
+if hypertune:
+    session_version = 0
 
-for output_units in hp_output_units.domain.values:
-    for hidden_num_layers in range(hp_hidden_num_layers.domain.min_value, (hp_hidden_num_layers.domain.max_value + 1)):
-        for optimizer in hp_optimizer.domain.values:
-            hparams = {
-                hp_hidden_num_layers: hidden_num_layers,
-                hp_optimizer: optimizer,
-                hp_output_units: output_units
-            }
+    for output_units in hp_output_units.domain.values:
+        for hidden_num_layers in range(hp_hidden_num_layers.domain.min_value, (hp_hidden_num_layers.domain.max_value + 1)):
+            for optimizer in hp_optimizer.domain.values:
+                hparams = {
+                    hp_hidden_num_layers: hidden_num_layers,
+                    hp_optimizer: optimizer,
+                    hp_output_units: output_units
+                }
 
-            print("Starting session:", session_version)
-            print({h.name: hparams[h] for h in hparams})
+                print("Starting session:", session_version)
+                print({h.name: hparams[h] for h in hparams})
 
-            model_tmp = model_builder(str(session_version), hparams)
-            compile_and_fit(model_tmp, model_tmp.name, hparams, hparams[hp_optimizer])
+                model_tmp = model_builder(str(session_version), hparams)
+                compile_and_fit(model_tmp, model_tmp.name, hparams, hparams[hp_optimizer])
 
-            session_version += 1
+                session_version += 1
 
+if build_mode:
+    model_temp = model_builder("prod", hparams)
+    compile_and_fit(model_temp, model_temp.name, hparams, hparams[hp_optimizer])
 
+    print("Saving model:", model_temp.name)
+    # Model version is NEEDED or Tensorflow Serve cant find any "serverable versions"
+    save_path = "%s/%s/%s" % (models_dir, model_temp.name, str(model_version))
+    model_temp.save(save_path)
+
+#    tf.keras.models.save_model(model_key, save_path)
 
 # print("\n\n\nBeginning predictions...")
 
