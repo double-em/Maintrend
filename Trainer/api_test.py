@@ -54,3 +54,4 @@ json_response = requests.post("http://localhost:8501/v1/models/prod:predict", da
 predictions = json.loads(json_response.text)['predictions']
 
 print("First prediction: %s Length: %s" % (predictions, len(predictions)))
+print("Predicted: %s, Actually: %s" % (predictions[0][0], y[0]))
