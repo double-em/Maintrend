@@ -43,15 +43,107 @@ X, y = handle_data(
     _step, 
     single_step=True)
 
-tcx = [[]]
+total_difference = 0
+max_difference = 0
+min_difference = 0
 
-tcx[0] = np.array(X[0]).tolist()
+real_total_difference = 0
+real_max_difference = 0
+real_min_difference = 0
 
-data = json.dumps({"signature_name":"serving_default", "instances":tcx})
+pred_amount = len(X)
 
-headers = {"content-type":"application/json"}
-json_response = requests.post("http://localhost:8501/v1/models/prod:predict", data=data, headers=headers)
-predictions = json.loads(json_response.text)['predictions']
+threshold = 3
+over_theshold_count = 0
 
-print("First prediction: %s Length: %s" % (predictions, len(predictions)))
-print("Predicted: %s, Actually: %s" % (predictions[0][0], y[0]))
+for i in range(pred_amount):
+    tcx = [[]]
+
+    tcx[0] = np.array(X[i]).tolist()
+
+    data = json.dumps({"signature_name":"serving_default", "instances":tcx})
+
+    headers = {"content-type":"application/json"}
+    json_response = requests.post("http://localhost:8501/v1/models/prod:predict", data=data, headers=headers)
+    predictions = json.loads(json_response.text)['predictions']
+
+    
+    
+    true_value = y[i]
+
+    single_prediction = predictions[0][0]
+    pred_difference = abs(single_prediction - true_value)
+
+    real_single_prediction = round(single_prediction)
+    real_pred_difference = abs(real_single_prediction - true_value)
+
+
+
+    total_difference += pred_difference
+
+    if pred_difference > max_difference:
+        max_difference = pred_difference
+
+    if pred_difference < min_difference:
+        min_difference = pred_difference
+
+
+
+    real_total_difference += real_pred_difference
+    
+    if real_pred_difference > real_max_difference:
+        real_max_difference = real_pred_difference
+
+    if real_pred_difference < real_min_difference:
+        real_min_difference = real_pred_difference
+
+
+
+    i += 1
+    if pred_difference > threshold:
+        
+        print("\n{:=^50}".format(" OVER TRESHOLD! "))
+        print("Predictions: %s" % (len(predictions)))
+        print("Predicted: %s(%s) \nActually: %s \nDifference: %s(%s)" % (
+            single_prediction,
+            real_single_prediction,
+            true_value,
+            pred_difference,
+            real_pred_difference
+        
+        ))
+
+        str_width = 10
+        print("\nDataset:")
+        print("{:{str_width}}{:{str_width}}{:{str_width}}{:{str_width}}{:{str_width}}".format(
+            "ma_day",
+            "produc",
+            "t_down",
+            "a_down",
+            "da_f_w"
+        ))
+
+        over_theshold_count += 1
+        for i in range(len(tcx[0])):
+            j = tcx[0][i]
+            print("{0[0]:10}{0[1]:10}{0[2]:10}{0[3]:10}{0[4]:10}".format([round(x, 2) for x in j]))
+
+total_mean_difference = total_difference / pred_amount
+real_total_mean_difference = real_total_difference / pred_amount
+
+print("\n========== Finished predictions! ==========")
+print("Total Loss:", total_difference)
+print("Total Mean Loss:", total_mean_difference)
+print("Maximum Loss:", max_difference)
+print("Minimum Loss:", min_difference)
+print("\n")
+print("Real Total Loss:", real_total_difference)
+print("Real Total Mean Loss:", real_total_mean_difference)
+print("Real Maximum Loss:", real_max_difference)
+print("Real Minimum Loss:", real_min_difference)
+print("\n")
+print("Total over threshold:", over_theshold_count)
+
+### Links
+# Cross Validation not used in NN: https://stackoverflow.com/questions/38164798/does-tensorflow-have-cross-validation-implemented-for-its-users
+# https://www.dotnetperls.com/abs-python
