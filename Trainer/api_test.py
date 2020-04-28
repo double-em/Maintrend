@@ -3,6 +3,7 @@ import requests
 import json
 import importlib
 api = importlib.import_module("API_Puller")
+util = importlib.import_module("util")
 
 from sklearn.preprocessing import MinMaxScaler
 
@@ -43,18 +44,12 @@ X, y = handle_data(
     _step, 
     single_step=True)
 
-total_difference = 0
-max_difference = 0
-min_difference = 0
 
-real_total_difference = 0
-real_max_difference = 0
-real_min_difference = 0
 
 pred_amount = len(X)
-
 threshold = 3
-over_theshold_count = 0
+
+differ = util.DifferenceHolder(threshold)
 
 for i in range(pred_amount):
     tcx = [[]]
@@ -67,91 +62,22 @@ for i in range(pred_amount):
     json_response = requests.post("http://localhost:8501/v1/models/prod:predict", data=data, headers=headers)
     predictions = json.loads(json_response.text)['predictions']
 
-    
-    
     true_value = y[i]
 
     single_prediction = predictions[0][0]
-    pred_difference = abs(single_prediction - true_value)
 
-    real_single_prediction = round(single_prediction)
-    real_pred_difference = abs(real_single_prediction - true_value)
-
-
-
-    total_difference += pred_difference
-
-    if pred_difference > max_difference:
-        max_difference = pred_difference
-
-    if pred_difference < min_difference:
-        min_difference = pred_difference
-
-
-
-    real_total_difference += real_pred_difference
-    
-    if real_pred_difference > real_max_difference:
-        real_max_difference = real_pred_difference
-
-    if real_pred_difference < real_min_difference:
-        real_min_difference = real_pred_difference
-
-
+    differ.difference_calc(single_prediction, true_value, tcx[0])
 
     i += 1
-    if pred_difference > threshold:
-        over_theshold_count += 1
 
-        print("\n{:=^50}".format(" OVER TRESHOLD! "))
-        print("Predictions: %s" % (len(predictions)))
-        print("Predicted: %s(%s) \nActually: %s \nDifference: %s(%s)" % (
-            single_prediction,
-            real_single_prediction,
-            true_value,
-            pred_difference,
-            real_pred_difference
-        
-        ))
-
-        str_width = 10
-        columns = [
-            "maintenance_day",
-            "produced_today",
-            "times_down_today",
-            "amount_down_today",
-            "day_of_week"
-        ]
-
-        print("\nDataset:")
-        for c in columns:
-            print("{:{width}.8}".format(c, width=str_width), end="")
-        print()
-        
-        for i in range(len(tcx[0])):
-            j = tcx[0][i]
-            for k in j:
-                print("{:{width}.5}".format(str(k), width=str_width), end="")
-            print()
-
-total_mean_difference = total_difference / pred_amount
-real_total_mean_difference = real_total_difference / pred_amount
-
-print("\n========== Finished predictions! ==========")
-print("{:22} {:.3f}".format("Total Loss:", total_difference))
-print("{:22} {:.3f}".format("Total Mean Loss:", total_mean_difference))
-print("{:22} {:.3f}".format("Maximum Loss:", max_difference))
-print("{:22} {:.3f}".format("Minimum Loss:", min_difference))
-print()
-print("{:22} {}".format("Real Total Loss:", real_total_difference))
-print("{:22} {:.3f}".format("Real Total Mean Loss:", real_total_mean_difference))
-print("{:22} {}".format("Real Maximum Loss:", real_max_difference))
-print("{:22} {}".format("Real Minimum Loss:", real_min_difference))
-print()
-print("{:22} {}".format("Threshold:", threshold))
-print("{:22} {}".format("Total over threshold:", over_theshold_count))
+util.PrintFinal(differ)
 
 ### Links
+# https://www.tensorflow.org/tfx/tutorials/serving/rest_simple#make_a_request_to_your_model_in_tensorflow_serving
+# https://www.tensorflow.org/tfx/serving/docker
+# https://www.tensorflow.org/guide/keras/train_and_evaluate
+
+
 # Cross Validation not used in NN: https://stackoverflow.com/questions/38164798/does-tensorflow-have-cross-validation-implemented-for-its-users
 # https://www.dotnetperls.com/abs-python
 # https://pyformat.info/

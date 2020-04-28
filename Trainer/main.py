@@ -8,6 +8,7 @@ import json
 import importlib
 from pathlib import Path
 api = importlib.import_module("API_Puller")
+util = importlib.import_module("util")
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
@@ -28,7 +29,7 @@ from sklearn.preprocessing import MinMaxScaler
 from tensorflow.python import debug as tf_debug
 from tensorboard.plugins.hparams import api as hp
 
-model_version = 20
+model_version = 40
 
 print("\nVisible Devices:", tf.config.get_visible_devices())
 
@@ -236,6 +237,20 @@ if build_mode:
     # Model version is NEEDED or Tensorflow Serve cant find any "serverable versions"
     save_path = "%s/%s/%s" % (models_dir, model_temp.name, str(model_version))
     model_temp.save(save_path)
+
+    ### Test model
+    treshold = 3000
+    differ = util.DifferenceHolder(treshold)
+
+    predictions = model_temp.predict(test_dataset)
+    dataset_arr = list(test_dataset.as_numpy_iterator())
+
+    for i in range(len(predictions)):
+
+        differ.difference_calc(predictions[i][0], y_test[i], dataset_arr[i][0])
+        i += 1
+    
+    util.PrintFinal(differ)
 
 
 
