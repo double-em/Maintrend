@@ -43,14 +43,14 @@ X, y = handle_data(
     _step, 
     single_step=True)
 
-json_str = ""
-for m in X:
-    for n in m:
-        pass
-data = json.dumps({"signature_name":"serving_default", "instances":X[0][0]})
+tcx = [[]]
+
+tcx[0] = np.array(X[0]).tolist()
+
+data = json.dumps({"signature_name":"serving_default", "instances":tcx})
 
 headers = {"content-type":"application/json"}
 json_response = requests.post("http://localhost:8501/v1/models/prod:predict", data=data, headers=headers)
 predictions = json.loads(json_response.text)['predictions']
 
-print("First prediction:", predictions[0])
+print("First prediction: %s Length: %s" % (predictions, len(predictions)))
