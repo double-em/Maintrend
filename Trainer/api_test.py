@@ -101,7 +101,8 @@ for i in range(pred_amount):
 
     i += 1
     if pred_difference > threshold:
-        
+        over_theshold_count += 1
+
         print("\n{:=^50}".format(" OVER TRESHOLD! "))
         print("Predictions: %s" % (len(predictions)))
         print("Predicted: %s(%s) \nActually: %s \nDifference: %s(%s)" % (
@@ -114,36 +115,47 @@ for i in range(pred_amount):
         ))
 
         str_width = 10
-        print("\nDataset:")
-        print("{:{str_width}}{:{str_width}}{:{str_width}}{:{str_width}}{:{str_width}}".format(
-            "ma_day",
-            "produc",
-            "t_down",
-            "a_down",
-            "da_f_w"
-        ))
+        columns = [
+            "maintenance_day",
+            "produced_today",
+            "times_down_today",
+            "amount_down_today",
+            "day_of_week"
+        ]
 
-        over_theshold_count += 1
+        print("\nDataset:")
+        for c in columns:
+            print("{:{width}.8}".format(c, width=str_width), end="")
+        print()
+        
         for i in range(len(tcx[0])):
             j = tcx[0][i]
-            print("{0[0]:10}{0[1]:10}{0[2]:10}{0[3]:10}{0[4]:10}".format([round(x, 2) for x in j]))
+            for k in j:
+                print("{:{width}.5}".format(str(k), width=str_width), end="")
+            print()
 
 total_mean_difference = total_difference / pred_amount
 real_total_mean_difference = real_total_difference / pred_amount
 
 print("\n========== Finished predictions! ==========")
-print("Total Loss:", total_difference)
-print("Total Mean Loss:", total_mean_difference)
-print("Maximum Loss:", max_difference)
-print("Minimum Loss:", min_difference)
-print("\n")
-print("Real Total Loss:", real_total_difference)
-print("Real Total Mean Loss:", real_total_mean_difference)
-print("Real Maximum Loss:", real_max_difference)
-print("Real Minimum Loss:", real_min_difference)
-print("\n")
-print("Total over threshold:", over_theshold_count)
+print("{:22} {:.3f}".format("Total Loss:", total_difference))
+print("{:22} {:.3f}".format("Total Mean Loss:", total_mean_difference))
+print("{:22} {:.3f}".format("Maximum Loss:", max_difference))
+print("{:22} {:.3f}".format("Minimum Loss:", min_difference))
+print()
+print("{:22} {}".format("Real Total Loss:", real_total_difference))
+print("{:22} {:.3f}".format("Real Total Mean Loss:", real_total_mean_difference))
+print("{:22} {}".format("Real Maximum Loss:", real_max_difference))
+print("{:22} {}".format("Real Minimum Loss:", real_min_difference))
+print()
+print("{:22} {}".format("Threshold:", threshold))
+print("{:22} {}".format("Total over threshold:", over_theshold_count))
 
 ### Links
 # Cross Validation not used in NN: https://stackoverflow.com/questions/38164798/does-tensorflow-have-cross-validation-implemented-for-its-users
 # https://www.dotnetperls.com/abs-python
+# https://pyformat.info/
+# https://docs.python.org/3/tutorial/datastructures.html#list-comprehensions
+# https://stackoverflow.com/questions/27411631/inline-for-loop
+# https://docs.python.org/3/library/string.html
+# https://www.w3schools.com/python/python_lambda.asp
