@@ -79,7 +79,7 @@ class DifferenceHolder:
 
 
 def PrintFinal(DifferenceHolder):
-    print("\n========== Finished predictions! ==========")
+    print("\n========== Finished {} predictions! ==========".format(DifferenceHolder.calculations))
     print("{:22} {:.3f}".format("Total Loss:", DifferenceHolder.total_difference))
     print("{:22} {:.3f}".format("Total Mean Loss:", DifferenceHolder.total_mean_difference))
     print("{:22} {:.3f}".format("Maximum Loss:", DifferenceHolder.max_difference))

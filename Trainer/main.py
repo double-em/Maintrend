@@ -29,14 +29,16 @@ from sklearn.preprocessing import MinMaxScaler
 from tensorflow.python import debug as tf_debug
 from tensorboard.plugins.hparams import api as hp
 
-model_version = 40
+model_version = 230
 
 print("\nVisible Devices:", tf.config.get_visible_devices())
 
-_batch_size = 1
+_patience = 40
+
+_batch_size = 128
 _buffer_size = 10000
 
-_max_epochs = 100
+_max_epochs = 1000
 _back_in_time = 60 # Days
 _step = 1 # Days to offset next dataset
 _target_size = 1 # How many to predict
@@ -136,10 +138,10 @@ print("Made", len(y_val), "validation datasets...")
 print("Made", len(y_test), "test datasets...")
 
 train_dataset = tf.data.Dataset.from_tensor_slices((X_train, y_train))
-train_dataset = train_dataset.cache().shuffle(_buffer_size).batch(_batch_size).repeat()
+train_dataset = train_dataset.cache().shuffle(_buffer_size).batch(_batch_size)
 
 val_dataset = tf.data.Dataset.from_tensor_slices((X_val, y_val))
-val_dataset = val_dataset.cache().shuffle(_buffer_size).batch(_batch_size).repeat()
+val_dataset = val_dataset.cache().shuffle(_buffer_size).batch(_batch_size)
 
 test_dataset = tf.data.Dataset.from_tensor_slices(X_test)
 test_dataset = test_dataset.cache().batch(_batch_size)
@@ -150,7 +152,7 @@ test_dataset = test_dataset.cache().batch(_batch_size)
 def get_callbacks(name, hparams):
     log_dir_path = log_dir + str(model_version) + "/" + name
     return [
-        EarlyStopping(monitor="val_loss", patience=10, min_delta=0.01),
+        EarlyStopping(monitor="val_loss", patience=_patience, restore_best_weights=True),
         TensorBoard(
             log_dir=log_dir_path,
             histogram_freq=1,
@@ -174,9 +176,9 @@ def compile_and_fit(model, name, hparams, optimizer=_optimizer, loss=_loss, max_
     model_history = model.fit(
         train_dataset, 
         epochs=max_epochs, 
-        steps_per_epoch=len(y_train), 
+        #steps_per_epoch=len(y_train), 
         validation_data=val_dataset, 
-        validation_steps=len(y_val), 
+        #validation_steps=len(y_val), 
         verbose=1, 
         callbacks=get_callbacks(name, hparams))
     
@@ -233,21 +235,33 @@ if build_mode:
     model_temp = model_builder("prod", hparams)
     compile_and_fit(model_temp, model_temp.name, hparams, hparams[hp_optimizer])
 
-    print("Saving model:", model_temp.name)
+    print("\nSaving model:", model_temp.name)
     # Model version is NEEDED or Tensorflow Serve cant find any "serverable versions"
     save_path = "%s/%s/%s" % (models_dir, model_temp.name, str(model_version))
     model_temp.save(save_path)
 
     ### Test model
-    treshold = 3000
+    treshold = 3
     differ = util.DifferenceHolder(treshold)
 
     predictions = model_temp.predict(test_dataset)
+
+    # Shape = (2, 32/29, 60, 5)
+    # Shape = (batches, batch_size, history_size, parameters)
     dataset_arr = list(test_dataset.as_numpy_iterator())
+
+    dataset_arr = np.concatenate(dataset_arr)
+
+    dataset_arr = np.reshape(dataset_arr, newshape=(-1, 60, 5))
 
     for i in range(len(predictions)):
 
-        differ.difference_calc(predictions[i][0], y_test[i], dataset_arr[i][0])
+        prediction = predictions[i][0]
+        true_value = y_test[i]
+        dataset = dataset_arr[i]
+
+        differ.difference_calc(prediction, true_value, dataset)
+
         i += 1
     
     util.PrintFinal(differ)
