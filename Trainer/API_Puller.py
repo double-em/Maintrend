@@ -38,80 +38,119 @@ def apicall(viewid, payload):
 
     return req.json()['channel']['feeds'][0]['points'], req.elapsed.total_seconds()
 
-print("\n==================================================================================\n")
-
-# Times down call
-viewid = "670"
-payload = {"0":{"feedid":"oee_stopsec", "methode":"none"}}
-jsonResponseD, elapsed = apicall(viewid, payload)
-print("Times down API call got: %s points, call took: %s seconds" % (len(jsonResponseD), elapsed))
-
-## Production amount call
-viewid = "694"
-payload = {"0":{"feedid":"p1_cnt","methode":"diff"}}
-jsonResponseP, elapsed = apicall(viewid, payload)
-print("Production amount API call got: %s points, call took: %s seconds" % (len(jsonResponseP), elapsed))
 
 
+def apicallv3():
 
-df = pd.DataFrame.from_dict(jsonResponseD)
-#comments = df.pop('comment')
-df = df.drop('pointid', axis=1)
-df['timestamp'] = pd.to_datetime(df['timestamp'])
-df['value'] = pd.to_numeric(df['value'])
-df['comment'] = df['comment'].fillna(0)
+    print("\n==================================================================================\n")
 
-dfDict = {'timestamp':[], 'category':[], 'comment':[]}
-dfDict['timestamp'] = df['timestamp']
+    # Times down call
+    viewid = "670"
+    payload = {"0":{"feedid":"oee_stopsec", "methode":"none"}}
+    jsonResponseD, elapsed = apicall(viewid, payload)
+    print("Times down API call got: %s points, call took: %s seconds" % (len(jsonResponseD), elapsed))
 
-for comment in df['comment']:
-    try:
-        dfDict['category'].append(int(comment))
-        dfDict['comment'].append("Uncategorised")
-    except:
-        c_json = json.loads(comment.replace("'", "\""))
-        dfDict['category'].append(c_json['category'])
+    ## Production amount call
+    viewid = "694"
+    payload = {"0":{"feedid":"p1_cnt","methode":"diff"}}
+    jsonResponseP, elapsed = apicall(viewid, payload)
+    print("Production amount API call got: %s points, call took: %s seconds" % (len(jsonResponseP), elapsed))
 
-        # > 4 to exclude 'None' comments
-        if len(str(c_json['comment'])) > 4:
-            dfDict['comment'].append(str(c_json['comment']).strip('[]\''))
-        else:
-            dfDict['comment'].append("Uncategorised")
+    start_time =  time.perf_counter()
 
-df = df.drop('comment', axis=1)
-df = df.merge(pd.DataFrame.from_dict(dfDict), how='outer', on='timestamp')
+    df = pd.DataFrame.from_dict(jsonResponseD)
+    #comments = df.pop('comment')
+    df = df.drop('pointid', axis=1)
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    df['value'] = pd.to_numeric(df['value'])
+    df['comment'] = df['comment'].fillna(0)
+
+    dfDict = {'timestamp':[], #'category':[],
+    'comment':[]}
+
+    dfDict['timestamp'] = df['timestamp']
+
+    for comment in df['comment']:
+        try:
+            comment = int(comment)
+            #dfDict['category'].append(int(comment))
+            dfDict['comment'].append(0)
+        except:
+            c_json = json.loads(comment.replace("'", "\""))
+            #dfDict['category'].append(c_json['category'])
+            
+            if "Planned repair" in str(c_json['comment']):
+                dfDict['comment'].append(1)
+            else:
+                dfDict['comment'].append(0)
+
+    df = df.drop('comment', axis=1)
+    df = df.merge(pd.DataFrame.from_dict(dfDict), how='outer', on='timestamp')
+
+    df = df.set_index('timestamp')
+    df = df.resample('D').max()
+
+    dfP = pd.DataFrame.from_dict(jsonResponseP)
+    dfP = dfP.drop('pointid', axis=1)
+    dfP['timestamp'] = pd.to_datetime(dfP['timestamp'])
+    dfP['value'] = pd.to_numeric(dfP['value'])
+    dfP = dfP[dfP['value'] > 0]
+    dfP = dfP.rename(columns={'value': 'produced'})
+    dfP = dfP.set_index('timestamp')
+    dfP = dfP.resample('D').sum()
+
+    dfP = dfP.reset_index()
+    df = df.reset_index()
+
+    df = df.merge(dfP, how='inner', on='timestamp')
+    df['timestamp'] = df['timestamp'].astype(int) / 10**9
+
+    # Unique strings
+    #print(df.groupby('comment').sum())
+    #print(df.groupby('category').sum())
+
+    print(df.isna().sum())
+    df = df.fillna(0)
+    print(df.isna().sum())
+
+    #print(df.info())
+    #print(df.describe())
+
+    #train = df.values[:,1:]
+    #labels = df.values[:,:1]
+
+    #print(labels)
 
 
-#df = df.resample('D').sum()
 
-#print(categories)
-#print(comments)
+    def last_main(dataset):
+        last_m = 0
+        for element in dataset:
+            if element[2] == 1:
+                last_m = element[0]
+                element[0] = 0
+            else:
+                element[0] = last_m - element[0]
+        return dataset
 
-dfP = pd.DataFrame.from_dict(jsonResponseP)
-dfP = dfP.drop('pointid', axis=1)
-dfP['timestamp'] = pd.to_datetime(dfP['timestamp'])
-dfP['value'] = pd.to_numeric(dfP['value'])
-dfP = dfP[dfP['value'] > 0]
-dfP = dfP.rename(columns={'value': 'produced'})
-dfP = dfP.set_index('timestamp')
-dfP = dfP.resample('D').sum()
+    newdata = last_main(df.values[::-2])
 
-#df['comment'] =  (lambda x: x == "Planned repair" and 0 or 1)(df['comment'])
-df = df.set_index('timestamp')
+    #print(newdata)
 
-#df['timestamp'] = pd.datetime.isoformat(df['timestamp'])
-#df.infer_objects().dtypes
+    dataset = tf.data.Dataset.from_tensor_slices(newdata[::-1])
+    dataset = dataset.filter(lambda window: window[0] > 0)
+    dataset = dataset.window(60, shift=1, drop_remainder=True)
+    dataset = dataset.flat_map(lambda window: window.batch(60))
+    dataset = dataset.map(lambda window: (window[:-1,:], window[-1,0]))
 
+    print("Datahandling took: %s" % ((time.perf_counter() - start_time)))
 
-# Unique strings
-print(df.groupby('comment').sum())
-print(df.groupby('category').sum())
-
-print(df.dtypes)
-
-dataset = tf.data.Dataset.from_tensor_slices(df)
-
-#print(list(dataset.as_numpy_iterator()))
+    #dataset = dataset.map(lambda window: (window[1:], window[:1]))
+    #for x,y in dataset:
+    #    print(x.numpy(),y.numpy())
+    #print(dataset)
+    #print(list(dataset.as_numpy_iterator()))
+    return dataset
 
 
 
@@ -176,7 +215,7 @@ def pulldata2():
 
     print("Production amount API call got: %s points, call took: %s seconds" % (len(jsonResponseP), reqP.elapsed.total_seconds()))
 
-
+    start_time =  time.perf_counter()
 
     # Datahandling for production amount call
     print("\nPreprocessing data (Step 1)...")
@@ -323,6 +362,7 @@ def pulldata2():
 
     dfPred = pd.DataFrame(data=predDict)
     print("\n\nGot", len(dfPred.values), "rows total... Returning to sender... Done!")
+    print("Datahandling took: %s" % ((time.perf_counter() - start_time)))
     print("\n==================================================================================\n")
 
     return dfPred.values

@@ -82,7 +82,8 @@ _loss = keras.losses.mean_absolute_error
 
 
 
-train = api.pulldata2()
+#train_old = api.pulldata2()
+train = api.apicallv3()
 
 time_now_string = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 log_dir = "logs/"
