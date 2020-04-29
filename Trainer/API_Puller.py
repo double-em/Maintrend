@@ -5,6 +5,117 @@ import sys
 import datetime
 import requests
 import json
+import time
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+import tensorflow as tf
+
+start = "14-04-2021 00:00:01"
+end = "13-04-2015 00:00:00"
+
+baseUrl = "***REMOVED***"
+apikey = "***REMOVED***"
+dst = "true"
+status = "true"
+
+def apicall(viewid, payload):
+    queryDictionary = {"apikey":apikey, "start":start, "end":end, "dst":dst, "viewid":viewid, "status":status, "wherevalue":">0"}
+    reqUrl = baseUrl
+
+    print("\nPulling data from API...")
+    ("Url: %s \nAPI key: %s" % (baseUrl, apikey))
+
+    first_key = True
+    for key in queryDictionary:
+        if first_key:
+            reqUrl += "?%s=%s" % (key, queryDictionary[key])
+            first_key = False
+        else:
+            reqUrl += "&%s=%s" % (key, queryDictionary[key])
+
+    print("\nRequesting:", reqUrl)
+    req = requests.post(reqUrl, json=payload)
+
+    return req.json()['channel']['feeds'][0]['points'], req.elapsed.total_seconds()
+
+print("\n==================================================================================\n")
+
+# Times down call
+viewid = "670"
+payload = {"0":{"feedid":"oee_stopsec", "methode":"none"}}
+jsonResponseD, elapsed = apicall(viewid, payload)
+print("Times down API call got: %s points, call took: %s seconds" % (len(jsonResponseD), elapsed))
+
+## Production amount call
+viewid = "694"
+payload = {"0":{"feedid":"p1_cnt","methode":"diff"}}
+jsonResponseP, elapsed = apicall(viewid, payload)
+print("Production amount API call got: %s points, call took: %s seconds" % (len(jsonResponseP), elapsed))
+
+
+
+df = pd.DataFrame.from_dict(jsonResponseD)
+#comments = df.pop('comment')
+df = df.drop('pointid', axis=1)
+df['timestamp'] = pd.to_datetime(df['timestamp'])
+df['value'] = pd.to_numeric(df['value'])
+df['comment'] = df['comment'].fillna(0)
+
+dfDict = {'timestamp':[], 'category':[], 'comment':[]}
+dfDict['timestamp'] = df['timestamp']
+
+for comment in df['comment']:
+    try:
+        dfDict['category'].append(int(comment))
+        dfDict['comment'].append("Uncategorised")
+    except:
+        c_json = json.loads(comment.replace("'", "\""))
+        dfDict['category'].append(c_json['category'])
+
+        # > 4 to exclude 'None' comments
+        if len(str(c_json['comment'])) > 4:
+            dfDict['comment'].append(str(c_json['comment']).strip('[]\''))
+        else:
+            dfDict['comment'].append("Uncategorised")
+
+df = df.drop('comment', axis=1)
+df = df.merge(pd.DataFrame.from_dict(dfDict), how='outer', on='timestamp')
+
+
+#df = df.resample('D').sum()
+
+#print(categories)
+#print(comments)
+
+dfP = pd.DataFrame.from_dict(jsonResponseP)
+dfP = dfP.drop('pointid', axis=1)
+dfP['timestamp'] = pd.to_datetime(dfP['timestamp'])
+dfP['value'] = pd.to_numeric(dfP['value'])
+dfP = dfP[dfP['value'] > 0]
+dfP = dfP.rename(columns={'value': 'produced'})
+dfP = dfP.set_index('timestamp')
+dfP = dfP.resample('D').sum()
+
+#df['comment'] =  (lambda x: x == "Planned repair" and 0 or 1)(df['comment'])
+df = df.set_index('timestamp')
+
+#df['timestamp'] = pd.datetime.isoformat(df['timestamp'])
+#df.infer_objects().dtypes
+
+
+# Unique strings
+print(df.groupby('comment').sum())
+print(df.groupby('category').sum())
+
+print(df.dtypes)
+
+dataset = tf.data.Dataset.from_tensor_slices(df)
+
+#print(list(dataset.as_numpy_iterator()))
+
+
+
+############################################################################################################################################
 
 def pulldata2():
 
