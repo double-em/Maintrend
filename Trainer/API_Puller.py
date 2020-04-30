@@ -9,6 +9,7 @@ import time
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 import tensorflow as tf
+import tensorflow_transform as tft
 
 start = "14-04-2021 00:00:01"
 end = "13-04-2015 00:00:00"
@@ -138,10 +139,10 @@ def apicallv3():
     #print(newdata)
 
     dataset = tf.data.Dataset.from_tensor_slices(newdata[::-1])
-    dataset = dataset.filter(lambda window: window[0] > 0)
+    dataset = dataset.filter(lambda window: window[0] >= 0)
     dataset = dataset.window(60, shift=1, drop_remainder=True)
     dataset = dataset.flat_map(lambda window: window.batch(60))
-    dataset = dataset.map(lambda window: (window[:-1,:], window[-1,0]))
+    dataset = dataset.map(lambda window: (window[:-1,:], ((window[-1,0]/60)/60)/24))
 
     print("Datahandling took: %s" % ((time.perf_counter() - start_time)))
 

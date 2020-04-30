@@ -35,7 +35,7 @@ print("\nVisible Devices:", tf.config.get_visible_devices())
 
 _patience = 40
 
-_batch_size = 128
+_batch_size = 1
 _buffer_size = 10000
 
 _max_epochs = 1000
@@ -89,63 +89,65 @@ time_now_string = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 log_dir = "logs/"
 models_dir = "models/"
 
-### Handle Data ###
-def handle_data(dataset, target, start_index, end_index, history_size, target_size, step, single_step=False):
+train_dataset = train.cache().shuffle(_buffer_size).batch(_batch_size).prefetch(tf.data.experimental.AUTOTUNE)
+
+# ### Handle Data ###
+# def handle_data(dataset, target, start_index, end_index, history_size, target_size, step, single_step=False):
     
-    data = []
-    labels = []
+#     data = []
+#     labels = []
 
-    for i in range(0, len(dataset) - history_size, step):
-        seq = dataset[i:i + history_size]
-        label = target[i + history_size - 1]
-        data.append(seq)
-        labels.append(label)
+#     for i in range(0, len(dataset) - history_size, step):
+#         seq = dataset[i:i + history_size]
+#         label = target[i + history_size - 1]
+#         data.append(seq)
+#         labels.append(label)
 
-    return data, labels
+#     return data, labels
 
-scaler = MinMaxScaler(feature_range=(0,1))
-rescaledX = scaler.fit_transform(train[:,2:-1])
+# scaler = MinMaxScaler(feature_range=(0,1))
+# rescaledX = scaler.fit_transform(train[:,2:-1])
 
-rescaledX = np.hstack((rescaledX, train[:,1:2]))
+# rescaledX = np.hstack((rescaledX, train[:,1:2]))
 
-print("Making timestep sets (Step size: %s, History: %s days, Target value size: %s day(s))" % (_step, _back_in_time, _target_size))
+# print("Making timestep sets (Step size: %s, History: %s days, Target value size: %s day(s))" % (_step, _back_in_time, _target_size))
 
-X, y = handle_data(
-    rescaledX, train[:, -1], 
-    0, 
-    len(train), 
-    _back_in_time, 
-    _target_size,
-    _step, 
-    single_step=True)
+# X, y = handle_data(
+#     rescaledX, train[:, -1], 
+#     0, 
+#     len(train), 
+#     _back_in_time, 
+#     _target_size,
+#     _step, 
+#     single_step=True)
 
-train_csv = pd.DataFrame(rescaledX, columns=[
-    "maintenance_day",
-    "produced_today",
-    "times_down_today",
-    "amount_down_today",
-    "day_of_week"
- ])
+# train_csv = pd.DataFrame(rescaledX, columns=[
+#     "maintenance_day",
+#     "produced_today",
+#     "times_down_today",
+#     "amount_down_today",
+#     "day_of_week"
+#  ])
 
-train_csv['days_to_maintenance'] = train[:,-1]
-train_csv.to_csv("/models/train.csv", index=False)
+# train_csv['days_to_maintenance'] = train[:,-1]
+# train_csv.to_csv("/models/train.csv", index=False)
 
-X_train, X_tmp, y_train, y_tmp = train_test_split(X, y, test_size=0.20)
-X_val, X_test, y_val, y_test = train_test_split(X_tmp, y_tmp, test_size=0.50)
+# X_train, X_tmp, y_train, y_tmp = train_test_split(X, y, test_size=0.20)
+# X_val, X_test, y_val, y_test = train_test_split(X_tmp, y_tmp, test_size=0.50)
 
-print("Made", len(y), "datasets total...")
-print("Made", len(y_train), "train datasets...")
-print("Made", len(y_val), "validation datasets...")
-print("Made", len(y_test), "test datasets...")
+# print("Made", len(y), "datasets total...")
+# print("Made", len(y_train), "train datasets...")
+# print("Made", len(y_val), "validation datasets...")
+# print("Made", len(y_test), "test datasets...")
 
-train_dataset = tf.data.Dataset.from_tensor_slices((X_train, y_train))
-train_dataset = train_dataset.cache().shuffle(_buffer_size).batch(_batch_size)
+# train_dataset = tf.data.Dataset.from_tensor_slices((X_train, y_train))
+# train_dataset = train_dataset.cache().shuffle(_buffer_size).batch(_batch_size)
 
-val_dataset = tf.data.Dataset.from_tensor_slices((X_val, y_val))
-val_dataset = val_dataset.cache().shuffle(_buffer_size).batch(_batch_size)
+# val_dataset = tf.data.Dataset.from_tensor_slices((X_val, y_val))
+# val_dataset = val_dataset.cache().shuffle(_buffer_size).batch(_batch_size)
 
-test_dataset = tf.data.Dataset.from_tensor_slices(X_test)
-test_dataset = test_dataset.cache().batch(_batch_size)
+# test_dataset = tf.data.Dataset.from_tensor_slices(X_test)
+# test_dataset = test_dataset.cache().batch(_batch_size)
 
 
 
@@ -153,7 +155,7 @@ test_dataset = test_dataset.cache().batch(_batch_size)
 def get_callbacks(name, hparams):
     log_dir_path = log_dir + str(model_version) + "/" + name
     return [
-        EarlyStopping(monitor="val_loss", patience=_patience, restore_best_weights=True),
+        #EarlyStopping(monitor="val_loss", patience=_patience, restore_best_weights=True),
         TensorBoard(
             log_dir=log_dir_path,
             histogram_freq=1,
@@ -169,7 +171,7 @@ def get_callbacks(name, hparams):
 def compile_and_fit(model, name, hparams, optimizer=_optimizer, loss=_loss, max_epochs=_max_epochs):
     model.compile(loss=loss, optimizer=optimizer)
 
-    model.summary()
+    #model.summary()
     print("Optimizer:", model.optimizer)
 
     print("\nTraining model...")
@@ -178,8 +180,9 @@ def compile_and_fit(model, name, hparams, optimizer=_optimizer, loss=_loss, max_
         train_dataset, 
         epochs=max_epochs, 
         #steps_per_epoch=len(y_train), 
-        validation_data=val_dataset, 
-        #validation_steps=len(y_val), 
+        #validation_data=val_dataset, 
+        #validation_steps=len(y_val),
+        #validation_split=0.10,
         verbose=1, 
         callbacks=get_callbacks(name, hparams))
     
@@ -195,15 +198,15 @@ def model_builder(name, hparams):
     model = Sequential(name=name)
 
     if hparams[hp_hidden_num_layers] == 0:
-        model.add(LSTM(hparams[hp_output_units], input_shape=X_train[0].shape))
+        model.add(LSTM(hparams[hp_output_units]))
     else:
-        model.add(LSTM(hparams[hp_output_units], input_shape=X_train[0].shape, return_sequences=True))
+        model.add(LSTM(hparams[hp_output_units], return_sequences=True))
 
     for i in range(hparams[hp_hidden_num_layers]):
         if i == (hparams[hp_hidden_num_layers] - 1):
             model.add(LSTM(hparams[hp_output_units]))
         else:
-            model.add(LSTM(hparams[hp_output_units], input_shape=X_train[0].shape, return_sequences=True))
+            model.add(LSTM(hparams[hp_output_units], return_sequences=True))
 
     model.add(Dense(1))
 
@@ -241,31 +244,31 @@ if build_mode:
     save_path = "%s/%s/%s" % (models_dir, model_temp.name, str(model_version))
     model_temp.save(save_path)
 
-    ### Test model
-    treshold = 3
-    differ = util.DifferenceHolder(treshold)
+    # ### Test model
+    # treshold = 3
+    # differ = util.DifferenceHolder(treshold)
 
-    predictions = model_temp.predict(test_dataset)
+    # predictions = model_temp.predict(test_dataset)
 
-    # Shape = (2, 32/29, 60, 5)
-    # Shape = (batches, batch_size, history_size, parameters)
-    dataset_arr = list(test_dataset.as_numpy_iterator())
+    # # Shape = (2, 32/29, 60, 5)
+    # # Shape = (batches, batch_size, history_size, parameters)
+    # dataset_arr = list(test_dataset.as_numpy_iterator())
 
-    dataset_arr = np.concatenate(dataset_arr)
+    # dataset_arr = np.concatenate(dataset_arr)
 
-    dataset_arr = np.reshape(dataset_arr, newshape=(-1, 60, 5))
+    # dataset_arr = np.reshape(dataset_arr, newshape=(-1, 60, 5))
 
-    for i in range(len(predictions)):
+    # for i in range(len(predictions)):
 
-        prediction = predictions[i][0]
-        true_value = y_test[i]
-        dataset = dataset_arr[i]
+    #     prediction = predictions[i][0]
+    #     true_value = y_test[i]
+    #     dataset = dataset_arr[i]
 
-        differ.difference_calc(prediction, true_value, dataset)
+    #     differ.difference_calc(prediction, true_value, dataset)
 
-        i += 1
+    #     i += 1
     
-    util.PrintFinal(differ)
+    # util.PrintFinal(differ)
 
 
 
