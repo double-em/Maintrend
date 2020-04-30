@@ -145,6 +145,7 @@ def apicallv3(history_size):
     print(df.describe())
     print(df.isna().sum())
 
+    # TODO: Sometimes predicts backwards.
     def last_main(dataset):
         dataset = dataset[::-1]
         first_main = True
