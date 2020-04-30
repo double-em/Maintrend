@@ -53,11 +53,11 @@ class DifferenceHolder:
 
             str_width = 10
             columns = [
-                "maintenance_day",
-                "produced_today",
-                "times_down_today",
                 "amount_down_today",
-                "day_of_week"
+                "times_down_today",
+                "produced_today",
+                "maintenance_day"#,
+                #"day_of_week"
             ]
 
             print("\nDataset:")

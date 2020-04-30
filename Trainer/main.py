@@ -33,12 +33,12 @@ model_version = 230
 
 print("\nVisible Devices:", tf.config.get_visible_devices())
 
-_patience = 40
+_patience = 20
 
 _batch_size = 1
 _buffer_size = 10000
 
-_max_epochs = 1000
+_max_epochs = 1
 _back_in_time = 60 # Days
 _step = 1 # Days to offset next dataset
 _target_size = 1 # How many to predict
@@ -77,19 +77,28 @@ _optimizer = keras.optimizers.Nadam()
 
 ### Losses
 _loss = keras.losses.mean_absolute_error
-# keras.losses.mean_squared_error
-# keras.losses.mean_absolute_error
-
-
-
-#train_old = api.pulldata2()
-train = api.apicallv3()
+#_loss = keras.losses.mean_squared_error
 
 time_now_string = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 log_dir = "logs/"
 models_dir = "models/"
 
-train_dataset = train.cache().shuffle(_buffer_size).batch(_batch_size).prefetch(tf.data.experimental.AUTOTUNE)
+
+#train_old = api.pulldata2()
+train = api.apicallv3(_back_in_time)
+trian_length = len(list(train.as_numpy_iterator()))
+train_size = int(0.8 * trian_length)
+val_size = int(0.1 * trian_length)
+test_size = int(0.1 * trian_length)
+
+full_dataset = train
+test_dataset = full_dataset.skip(train_size)
+
+train_dataset = full_dataset.take(train_size).shuffle(_buffer_size).batch(_batch_size).cache().prefetch(train_size)
+val_dataset = test_dataset.take(val_size).shuffle(_buffer_size).batch(_batch_size).cache().prefetch(val_size)
+test_dataset = test_dataset.skip(val_size).shuffle(_buffer_size).batch(_batch_size).cache().prefetch(test_size)
+
+#print(list(test_dataset.as_numpy_iterator()))
 
 # ### Handle Data ###
 # def handle_data(dataset, target, start_index, end_index, history_size, target_size, step, single_step=False):
@@ -155,7 +164,7 @@ train_dataset = train.cache().shuffle(_buffer_size).batch(_batch_size).prefetch(
 def get_callbacks(name, hparams):
     log_dir_path = log_dir + str(model_version) + "/" + name
     return [
-        #EarlyStopping(monitor="val_loss", patience=_patience, restore_best_weights=True),
+        EarlyStopping(monitor="val_loss", patience=_patience),
         TensorBoard(
             log_dir=log_dir_path,
             histogram_freq=1,
@@ -180,7 +189,7 @@ def compile_and_fit(model, name, hparams, optimizer=_optimizer, loss=_loss, max_
         train_dataset, 
         epochs=max_epochs, 
         #steps_per_epoch=len(y_train), 
-        #validation_data=val_dataset, 
+        validation_data=val_dataset, 
         #validation_steps=len(y_val),
         #validation_split=0.10,
         verbose=1, 
@@ -244,31 +253,47 @@ if build_mode:
     save_path = "%s/%s/%s" % (models_dir, model_temp.name, str(model_version))
     model_temp.save(save_path)
 
-    # ### Test model
-    # treshold = 3
-    # differ = util.DifferenceHolder(treshold)
+    ### Test model
+    treshold = 3
+    differ = util.DifferenceHolder(treshold)
 
-    # predictions = model_temp.predict(test_dataset)
+    predictions = model_temp.predict(test_dataset)
 
-    # # Shape = (2, 32/29, 60, 5)
-    # # Shape = (batches, batch_size, history_size, parameters)
-    # dataset_arr = list(test_dataset.as_numpy_iterator())
+    # Shape = (6, 2, 16, 60, 4)
+    # Shape = (batches, (x and y), batch_size, history_size, parameters)
+    dataset_list = list(test_dataset.as_numpy_iterator())
+    #dataset_list = dataset_list.flatten()
 
-    # dataset_arr = np.concatenate(dataset_arr)
+    x_s = []
+    y_s = []
 
-    # dataset_arr = np.reshape(dataset_arr, newshape=(-1, 60, 5))
+    for item in dataset_list:
+        for ite in item[0]:
+            x_s.append(ite)
 
-    # for i in range(len(predictions)):
+        for ite in item[1]:
+            y_s.append(ite)
 
-    #     prediction = predictions[i][0]
-    #     true_value = y_test[i]
-    #     dataset = dataset_arr[i]
+    print(len(x_s))
+    print(len(y_s))
 
-    #     differ.difference_calc(prediction, true_value, dataset)
-
-    #     i += 1
+    #dataset_list = dataset_list.flatten()
     
-    # util.PrintFinal(differ)
+    #dataset_arr = np.concatenate(dataset_list)
+
+    #x_s = np.reshape(x_s, newshape=(-1, 60, 4))
+
+    for i in range(len(predictions)):
+
+        prediction = predictions[i][0]
+        dataset = x_s[i]
+        true_value = y_s[i]
+
+        differ.difference_calc(prediction, true_value, dataset)
+
+        i += 1
+    
+    util.PrintFinal(differ)
 
 
 

@@ -8,8 +8,8 @@ import json
 import time
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
-import tensorflow_transform as tft
 
 start = "14-04-2021 00:00:01"
 end = "13-04-2015 00:00:00"
@@ -41,7 +41,7 @@ def apicall(viewid, payload):
 
 
 
-def apicallv3():
+def apicallv3(history_size):
 
     print("\n==================================================================================\n")
 
@@ -60,18 +60,21 @@ def apicallv3():
     start_time =  time.perf_counter()
 
     df = pd.DataFrame.from_dict(jsonResponseD)
+    print(df)
     #comments = df.pop('comment')
     df = df.drop('pointid', axis=1)
     df['timestamp'] = pd.to_datetime(df['timestamp'])
     df['value'] = pd.to_numeric(df['value'])
+    df = df.rename(columns={'value': 'downtime'})
     df['comment'] = df['comment'].fillna(0)
 
-    dfDict = {'timestamp':[], #'category':[],
+    dfDict = {'timestamp':[], 'times_down':[],
     'comment':[]}
 
     dfDict['timestamp'] = df['timestamp']
 
     for comment in df['comment']:
+        dfDict['times_down'].append(1)
         try:
             comment = int(comment)
             #dfDict['category'].append(int(comment))
@@ -80,22 +83,38 @@ def apicallv3():
             c_json = json.loads(comment.replace("'", "\""))
             #dfDict['category'].append(c_json['category'])
             
-            if "Planned repair" in str(c_json['comment']):
+            if "Planned repair" in str(c_json['comment']) or "Unplanned repair" in str(c_json['comment']):
                 dfDict['comment'].append(1)
             else:
                 dfDict['comment'].append(0)
 
     df = df.drop('comment', axis=1)
     df = df.merge(pd.DataFrame.from_dict(dfDict), how='outer', on='timestamp')
-
     df = df.set_index('timestamp')
-    df = df.resample('D').max()
+    df = df.resample('D').sum()
+
+    df['times_down'] = df['times_down'].mask(df['times_down'] > 40)
+    df['times_down'] = df['times_down'].fillna(df['times_down'].mean())
+
+    print(df.isna().sum())
+    print(df.describe())
+    dfComments = df.pop('comment')
+    #print(dfComments)
+    #print(dfComments) 
 
     dfP = pd.DataFrame.from_dict(jsonResponseP)
     dfP = dfP.drop('pointid', axis=1)
     dfP['timestamp'] = pd.to_datetime(dfP['timestamp'])
     dfP['value'] = pd.to_numeric(dfP['value'])
-    dfP = dfP[dfP['value'] > 0]
+    #dfP = dfP[dfP['value'] >= 0]
+    #dfP = dfP.mask(dfP['value'] < 0)
+
+    # Filling big values with mean instead of 0
+    dfP['value'] = dfP['value'].mask(dfP['value'] < 0)
+    dfP['value'] = dfP['value'].mask(dfP['value'] > 5000)
+    dfP['value'] = dfP['value'].fillna(dfP['value'].mean())
+    print(dfP.isna().sum())
+    print(dfP.describe())
     dfP = dfP.rename(columns={'value': 'produced'})
     dfP = dfP.set_index('timestamp')
     dfP = dfP.resample('D').sum()
@@ -103,46 +122,68 @@ def apicallv3():
     dfP = dfP.reset_index()
     df = df.reset_index()
 
-    df = df.merge(dfP, how='inner', on='timestamp')
+    df = df.merge(dfP, how='outer', on='timestamp')
+    df = df.merge(dfComments, how='outer', on='timestamp')
+    df['comment'] = df['comment'].mask(df['comment'] > 0).fillna(1)
     df['timestamp'] = df['timestamp'].astype(int) / 10**9
+
+    
+
+    scaler = MinMaxScaler(feature_range=(0,1))
+    # df['downtime'] = scaler.fit_transform((df['downtime'], 1))
+    # df['times_down'] = scaler.fit_transform((df['times_down'], 1))
+    # df['produced'] = scaler.fit_transform((df['produced'], 1))
 
     # Unique strings
     #print(df.groupby('comment').sum())
     #print(df.groupby('category').sum())
 
+    print(df)
+    print(df.describe())
     print(df.isna().sum())
-    df = df.fillna(0)
-    print(df.isna().sum())
-
-    #print(df.info())
-    #print(df.describe())
-
-    #train = df.values[:,1:]
-    #labels = df.values[:,:1]
-
-    #print(labels)
-
-
 
     def last_main(dataset):
+        dataset = dataset[::-1]
+        first_main = True
         last_m = 0
+        
         for element in dataset:
-            if element[2] == 1:
-                last_m = element[0]
-                element[0] = 0
+
+            if first_main:
+                if element[4] == 1:
+                    first_main = False
+                    last_m = element[0]
+                    element[0] = 0
+                else:
+                    continue
+
             else:
-                element[0] = last_m - element[0]
-        return dataset
+                if element[4] == 1:
+                    last_m = element[0]
+                    element[0] = 0
+                else:
+                    element[0] = ((((last_m - element[0])/60)/60)/24)
 
-    newdata = last_main(df.values[::-2])
+        return dataset[::-1]
 
-    #print(newdata)
+    newdata = last_main(df.values)
 
-    dataset = tf.data.Dataset.from_tensor_slices(newdata[::-1])
-    dataset = dataset.filter(lambda window: window[0] >= 0)
-    dataset = dataset.window(60, shift=1, drop_remainder=True)
-    dataset = dataset.flat_map(lambda window: window.batch(60))
-    dataset = dataset.map(lambda window: (window[:-1,:], ((window[-1,0]/60)/60)/24))
+    newdata[:,1:-1] = scaler.fit_transform(newdata[:,1:-1])
+
+    print(newdata)
+
+    dataset = tf.data.Dataset.from_tensor_slices(newdata)
+    #dataset = dataset.filter(lambda window: window[0] >= 0)
+    print("Step 1:\n %s \n" % dataset)
+
+    dataset = dataset.window(history_size, shift=1, drop_remainder=True)
+    print("Step 2:\n %s \n" % dataset)
+
+    dataset = dataset.flat_map(lambda window: window.batch(history_size))
+    print("Step 3:\n %s \n" % dataset)
+
+    dataset = dataset.map(lambda window: (window[:,1:], window[-1,0]))
+    print("Step 4:\n %s \n" % dataset)
 
     print("Datahandling took: %s" % ((time.perf_counter() - start_time)))
 
@@ -150,7 +191,7 @@ def apicallv3():
     #for x,y in dataset:
     #    print(x.numpy(),y.numpy())
     #print(dataset)
-    #print(list(dataset.as_numpy_iterator()))
+    print(list(dataset.as_numpy_iterator())[-1])
     return dataset
 
 
