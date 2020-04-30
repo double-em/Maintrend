@@ -33,12 +33,12 @@ model_version = 230
 
 print("\nVisible Devices:", tf.config.get_visible_devices())
 
-_patience = 20
+_patience = 40
 
-_batch_size = 1
+_batch_size = 16
 _buffer_size = 10000
 
-_max_epochs = 1
+_max_epochs = 400
 _back_in_time = 60 # Days
 _step = 1 # Days to offset next dataset
 _target_size = 1 # How many to predict
@@ -164,7 +164,7 @@ test_dataset = test_dataset.skip(val_size).shuffle(_buffer_size).batch(_batch_si
 def get_callbacks(name, hparams):
     log_dir_path = log_dir + str(model_version) + "/" + name
     return [
-        EarlyStopping(monitor="val_loss", patience=_patience),
+        EarlyStopping(monitor="val_loss", patience=_patience, restore_best_weights=True),
         TensorBoard(
             log_dir=log_dir_path,
             histogram_freq=1,

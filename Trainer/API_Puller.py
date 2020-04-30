@@ -138,6 +138,9 @@ def apicallv3(history_size):
     #print(df.groupby('comment').sum())
     #print(df.groupby('category').sum())
 
+    # At midnight when the system runs but no downtime
+    df = df.fillna(0)
+
     print(df)
     print(df.describe())
     print(df.isna().sum())
@@ -194,7 +197,22 @@ def apicallv3(history_size):
     print(list(dataset.as_numpy_iterator())[-1])
     return dataset
 
-
+# Links
+# https://classroom.udacity.com/courses/ud187/lessons/6d543d5c-6b18-4ecf-9f0f-3fd034acd2cc/concepts/0d390920-2ece-46ac-adea-25f4f54265f7
+# https://colab.research.google.com/github/tensorflow/examples/blob/master/courses/udacity_intro_to_tensorflow_for_deep_learning/l08c04_time_windows.ipynb#scrollTo=hzp7RD6_8OIY
+# https://www.tensorflow.org/guide/data_performance#prefetching
+# https://stackoverflow.com/questions/6771428/most-efficient-way-to-reverse-a-numpy-array
+# https://towardsdatascience.com/using-lstms-to-forecast-time-series-4ab688386b1f
+# https://github.com/omerbsezer/LSTM_RNN_Tutorials_with_Demo/blob/d3bb6b7dac10159b2e8a0a21fbf27e0078c3321b/StockPricesPredictionProject/pricePredictionLSTM.py#L20
+# https://www.bioinf.jku.at/publications/older/2604.pdf
+# https://github.com/omerbsezer/LSTM_RNN_Tutorials_with_Demo
+# https://www.tensorflow.org/api_docs/python/tf/data/Dataset?version=nightly#list_files
+# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.resample.html?highlight=resample#pandas.DataFrame.resample
+# https://www.tensorflow.org/guide/data#time_series_windowing
+# https://www.tensorflow.org/tutorials/load_data/pandas_dataframe#load_data_using_tfdatadataset
+# https://www.tensorflow.org/tutorials/structured_data/time_series
+# https://www.tensorflow.org/tfx/tutorials/transform/census#create_a_beam_transform_for_cleaning_our_input_data
+# https://www.tensorflow.org/guide/keras/train_and_evaluate#api_overview_a_first_end-to-end_example
 
 ############################################################################################################################################
 
