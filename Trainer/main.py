@@ -29,7 +29,13 @@ from sklearn.preprocessing import MinMaxScaler
 from tensorflow.python import debug as tf_debug
 from tensorboard.plugins.hparams import api as hp
 
-model_version = 230
+
+model_name = "test"
+model_version = 30
+
+time_now_string = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+log_dir = "logs/"
+models_dir = "models/"
 
 print("\nVisible Devices:", tf.config.get_visible_devices())
 
@@ -77,14 +83,9 @@ _optimizer = keras.optimizers.Nadam()
 
 ### Losses
 _loss = keras.losses.mean_absolute_error
-#_loss = keras.losses.mean_squared_error
+# _loss = keras.losses.mean_squared_error
 
-time_now_string = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-log_dir = "logs/"
-models_dir = "models/"
-
-
-#train_old = api.pulldata2()
+# train_old = api.pulldata2()
 train = api.apicallv3(_back_in_time)
 trian_length = len(list(train.as_numpy_iterator()))
 train_size = int(0.8 * trian_length)

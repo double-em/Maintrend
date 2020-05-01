@@ -150,23 +150,27 @@ def apicallv3(history_size):
         dataset = dataset[::-1]
         first_main = True
         last_m = 0
-        
-        for element in dataset:
+        remove = []
+        for i in range(len(dataset)):
 
             if first_main:
-                if element[4] == 1:
+                if dataset[i][4] == 1:
                     first_main = False
-                    last_m = element[0]
-                    element[0] = 0
+                    last_m = dataset[i][0]
+                    dataset[i][0] = 0
                 else:
-                    continue
+                    remove.append(i)
 
             else:
-                if element[4] == 1:
-                    last_m = element[0]
-                    element[0] = 0
+                if dataset[i][4] == 1:
+                    last_m = dataset[i][0]
+                    dataset[i][0] = 0
                 else:
-                    element[0] = ((((last_m - element[0])/60)/60)/24)
+                    dataset[i][0] = ((((last_m - dataset[i][0])/60)/60)/24)
+            
+            i += 1
+
+        dataset = np.delete(dataset, remove, axis=0)
 
         return dataset[::-1]
 
@@ -174,10 +178,7 @@ def apicallv3(history_size):
 
     newdata[:,1:-1] = scaler.fit_transform(newdata[:,1:-1])
 
-    print(newdata)
-
     dataset = tf.data.Dataset.from_tensor_slices(newdata)
-    #dataset = dataset.filter(lambda window: window[0] >= 0)
     print("Step 1:\n %s \n" % dataset)
 
     dataset = dataset.window(history_size, shift=1, drop_remainder=True)
@@ -191,11 +192,8 @@ def apicallv3(history_size):
 
     print("Datahandling took: %s" % ((time.perf_counter() - start_time)))
 
-    #dataset = dataset.map(lambda window: (window[1:], window[:1]))
-    #for x,y in dataset:
-    #    print(x.numpy(),y.numpy())
-    #print(dataset)
     print(list(dataset.as_numpy_iterator())[-1])
+    
     return dataset
 
 # Links
