@@ -31,7 +31,7 @@ from tensorboard.plugins.hparams import api as hp
 
 
 model_name = "test"
-model_version = 30
+model_version = 40
 
 time_now_string = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 log_dir = "logs/"
@@ -39,12 +39,12 @@ models_dir = "models/"
 
 print("\nVisible Devices:", tf.config.get_visible_devices())
 
-_patience = 40
+_patience = 60
 
-_batch_size = 16
+_batch_size = 32
 _buffer_size = 10000
 
-_max_epochs = 400
+_max_epochs = 1000
 _back_in_time = 60 # Days
 _step = 1 # Days to offset next dataset
 _target_size = 1 # How many to predict
@@ -92,12 +92,12 @@ train_size = int(0.8 * trian_length)
 val_size = int(0.1 * trian_length)
 test_size = int(0.1 * trian_length)
 
-full_dataset = train
+full_dataset = train.shuffle(trian_length, seed=42)
 test_dataset = full_dataset.skip(train_size)
 
-train_dataset = full_dataset.take(train_size).shuffle(_buffer_size).batch(_batch_size).cache().prefetch(train_size)
-val_dataset = test_dataset.take(val_size).shuffle(_buffer_size).batch(_batch_size).cache().prefetch(val_size)
-test_dataset = test_dataset.skip(val_size).shuffle(_buffer_size).batch(_batch_size).cache().prefetch(test_size)
+train_dataset = full_dataset.take(train_size).batch(_batch_size, drop_remainder=True).cache().prefetch(train_size)
+val_dataset = test_dataset.take(val_size).batch(_batch_size, drop_remainder=True).cache().prefetch(val_size)
+test_dataset = test_dataset.skip(val_size).batch(_batch_size, drop_remainder=True).cache().prefetch(test_size)
 
 #print(list(test_dataset.as_numpy_iterator()))
 
@@ -168,9 +168,7 @@ def get_callbacks(name, hparams):
         EarlyStopping(monitor="val_loss", patience=_patience, restore_best_weights=True),
         TensorBoard(
             log_dir=log_dir_path,
-            histogram_freq=1,
-            embeddings_freq=1,
-            profile_batch=4
+            histogram_freq=1
         ),
         hp.KerasCallback(log_dir_path, hparams, name)
     ]

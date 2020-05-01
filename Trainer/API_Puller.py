@@ -166,19 +166,35 @@ def apicallv3(history_size):
                     last_m = dataset[i][0]
                     dataset[i][0] = 0
                 else:
-                    dataset[i][0] = ((((last_m - dataset[i][0])/60)/60)/24)
+                    dataset[i][0] = int((((last_m - dataset[i][0])/60)/60)/24)
             
             i += 1
 
         dataset = np.delete(dataset, remove, axis=0)
 
         return dataset[::-1]
+    
+    data_arr = df.values
 
-    newdata = last_main(df.values)
+    # Remove the first days where they havent logged much maintenance
+    # NOTE: Helped alot!
+    first_index = 0
+    for i in range(len(data_arr)):
+        if data_arr[i][4] == 1:
+            break
+        first_index += 1
+
+    newdata = last_main(data_arr[first_index:])
 
     newdata[:,1:-1] = scaler.fit_transform(newdata[:,1:-1])
 
-    dataset = tf.data.Dataset.from_tensor_slices(newdata)
+    tmp_df = pd.DataFrame(newdata).astype({0:'int32', 1:'float32', 2:'float32', 3:'float32', 4:'int32'})
+
+    print(tmp_df)
+    print(tmp_df.describe())
+    print(tmp_df.info())
+
+    dataset = tf.data.Dataset.from_tensor_slices(tmp_df.values)
     print("Step 1:\n %s \n" % dataset)
 
     dataset = dataset.window(history_size, shift=1, drop_remainder=True)
@@ -193,7 +209,7 @@ def apicallv3(history_size):
     print("Datahandling took: %s" % ((time.perf_counter() - start_time)))
 
     print(list(dataset.as_numpy_iterator())[-1])
-    
+
     return dataset
 
 # Links

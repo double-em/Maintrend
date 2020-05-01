@@ -13,38 +13,40 @@ _back_in_time = 60
 _step = 1
 _target_size = 1
 
-train = api.pulldata2()
+train = api.apicallv3(_back_in_time)
 
-def handle_data(dataset, target, start_index, end_index, history_size, target_size, step, single_step=False):
+# train = api.pulldata2()
+
+# def handle_data(dataset, target, start_index, end_index, history_size, target_size, step, single_step=False):
     
-    data = []
-    labels = []
+#     data = []
+#     labels = []
 
-    for i in range(0, len(dataset) - history_size, step):
-        seq = dataset[i:i + history_size]
-        label = target[i + history_size - 1]
-        data.append(seq)
-        labels.append(label)
+#     for i in range(0, len(dataset) - history_size, step):
+#         seq = dataset[i:i + history_size]
+#         label = target[i + history_size - 1]
+#         data.append(seq)
+#         labels.append(label)
 
-    return data, labels
+#     return data, labels
 
-scaler = MinMaxScaler(feature_range=(0,1))
-rescaledX = scaler.fit_transform(train[:,2:-1])
+# scaler = MinMaxScaler(feature_range=(0,1))
+# rescaledX = scaler.fit_transform(train[:,2:-1])
 
-rescaledX = np.hstack((rescaledX, train[:,1:2]))
+# rescaledX = np.hstack((rescaledX, train[:,1:2]))
 
-print("Making timestep sets (Step size: %s, History: %s days, Target value size: %s day(s))" % (_step, _back_in_time, _target_size))
+# print("Making timestep sets (Step size: %s, History: %s days, Target value size: %s day(s))" % (_step, _back_in_time, _target_size))
 
-X, y = handle_data(
-    rescaledX, train[:, -1], 
-    0, 
-    len(train), 
-    _back_in_time, 
-    _target_size,
-    _step, 
-    single_step=True)
+# X, y = handle_data(
+#     rescaledX, train[:, -1], 
+#     0, 
+#     len(train), 
+#     _back_in_time, 
+#     _target_size,
+#     _step, 
+#     single_step=True)
 
-
+X = list(train.as_numpy_iterator())
 
 pred_amount = len(X)
 threshold = 3
@@ -61,6 +63,8 @@ for i in range(pred_amount):
     headers = {"content-type":"application/json"}
     json_response = requests.post("http://localhost:8501/v1/models/prod:predict", data=data, headers=headers)
     predictions = json.loads(json_response.text)['predictions']
+
+    print(predictions)
 
     true_value = y[i]
 
