@@ -13,7 +13,7 @@ from flask import request, jsonify
 app = flask.Flask(__name__)
 app.config['DEBUG'] = True
 
-baseUrl = "***REMOVED***"
+baseUrl = os.environ['API_BASE_URL']
 dst = "true"
 status = "true"
 
