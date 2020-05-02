@@ -15,7 +15,7 @@ on:
 
 env:
   IMAGE_NAME: predictor
-  PATH_MODEL: models/
+  PATH_MODEL: models
 
 jobs:
   test:
