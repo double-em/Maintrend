@@ -14,8 +14,8 @@ import tensorflow as tf
 start = "14-04-2021 00:00:01"
 end = "13-04-2015 00:00:00"
 
-baseUrl = "***REMOVED***"
-apikey = "***REMOVED***"
+baseUrl = os.environ['API_BASE_URL'] + '/' + os.environ['API_CHANNEL'] + '/' + os.environ['API_F']
+apikey = os.environ['API_KEY']
 dst = "true"
 status = "true"
 

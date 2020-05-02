@@ -1,9 +1,6 @@
 # For more information, please refer to https://aka.ms/vscode-docker-python
 FROM tensorflow/tensorflow:nightly-gpu-py3
 
-ENV NVIDIA_VISIBLE_DEVICES=all
-ENV NVIDIA_DRIVER_CAPABILITIES=all
-
 # Keeps Python from generating .pyc files in the container
 ENV PYTHONDONTWRITEBYTECODE 1
 

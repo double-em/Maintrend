@@ -31,7 +31,7 @@ from tensorboard.plugins.hparams import api as hp
 
 
 model_name = "test"
-model_version = 1
+model_version = 3
 
 time_now_string = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 log_dir = "logs/"
