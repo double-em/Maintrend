@@ -46,6 +46,9 @@ jobs:
         run: |
           IMAGE_ID=docker.pkg.github.com/${{ github.repository }}/$IMAGE_NAME
 
+          # Change all uppercase to lowercase becouse the repository has uppercase letters and github only accepts lowercase
+          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+
           VERSION=latest
 
           docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
