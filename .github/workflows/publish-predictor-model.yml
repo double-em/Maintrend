@@ -1,4 +1,4 @@
-name: publish-predictor-model
+name: Predictor build
 
 on:
   push:
