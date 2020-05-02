@@ -48,5 +48,5 @@ jobs:
 
           VERSION=latest
 
-          dokcer tag $IMAGE_NAME $IMAGE_ID:$VERSION
+          docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
           docker push $IMAGE_ID:$VERSION
