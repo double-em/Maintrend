@@ -51,7 +51,7 @@ def apicallv3(history_size):
     jsonResponseD, elapsed = apicall(viewid, payload)
     print("Times down API call got: %s points, call took: %s seconds" % (len(jsonResponseD), elapsed))
 
-    ## Production amount call
+    # Production amount call
     viewid = "694"
     payload = {"0":{"feedid":"p1_cnt","methode":"diff"}}
     jsonResponseP, elapsed = apicall(viewid, payload)
@@ -61,7 +61,6 @@ def apicallv3(history_size):
 
     df = pd.DataFrame.from_dict(jsonResponseD)
     print(df)
-    #comments = df.pop('comment')
     df = df.drop('pointid', axis=1)
     df['timestamp'] = pd.to_datetime(df['timestamp'])
     df['value'] = pd.to_numeric(df['value'])
@@ -77,11 +76,9 @@ def apicallv3(history_size):
         dfDict['times_down'].append(1)
         try:
             comment = int(comment)
-            #dfDict['category'].append(int(comment))
             dfDict['comment'].append(0)
         except:
             c_json = json.loads(comment.replace("'", "\""))
-            #dfDict['category'].append(c_json['category'])
             
             if "Planned repair" in str(c_json['comment']) or "Unplanned repair" in str(c_json['comment']):
                 dfDict['comment'].append(1)
@@ -99,15 +96,11 @@ def apicallv3(history_size):
     print(df.isna().sum())
     print(df.describe())
     dfComments = df.pop('comment')
-    #print(dfComments)
-    #print(dfComments) 
 
     dfP = pd.DataFrame.from_dict(jsonResponseP)
     dfP = dfP.drop('pointid', axis=1)
     dfP['timestamp'] = pd.to_datetime(dfP['timestamp'])
     dfP['value'] = pd.to_numeric(dfP['value'])
-    #dfP = dfP[dfP['value'] >= 0]
-    #dfP = dfP.mask(dfP['value'] < 0)
 
     # Filling big values with mean instead of 0
     dfP['value'] = dfP['value'].mask(dfP['value'] < 0)
@@ -127,16 +120,7 @@ def apicallv3(history_size):
     df['comment'] = df['comment'].mask(df['comment'] > 0).fillna(1)
     df['timestamp'] = df['timestamp'].astype(int) / 10**9
 
-    
-
     scaler = MinMaxScaler(feature_range=(0,1))
-    # df['downtime'] = scaler.fit_transform((df['downtime'], 1))
-    # df['times_down'] = scaler.fit_transform((df['times_down'], 1))
-    # df['produced'] = scaler.fit_transform((df['produced'], 1))
-
-    # Unique strings
-    #print(df.groupby('comment').sum())
-    #print(df.groupby('category').sum())
 
     # At midnight when the system runs but no downtime
     df = df.fillna(0)

@@ -99,66 +99,6 @@ train_dataset = full_dataset.take(train_size).batch(_batch_size, drop_remainder=
 val_dataset = test_dataset.take(val_size).batch(_batch_size, drop_remainder=True).cache().prefetch(val_size)
 test_dataset = test_dataset.skip(val_size).batch(_batch_size, drop_remainder=True).cache().prefetch(test_size)
 
-#print(list(test_dataset.as_numpy_iterator()))
-
-# ### Handle Data ###
-# def handle_data(dataset, target, start_index, end_index, history_size, target_size, step, single_step=False):
-    
-#     data = []
-#     labels = []
-
-#     for i in range(0, len(dataset) - history_size, step):
-#         seq = dataset[i:i + history_size]
-#         label = target[i + history_size - 1]
-#         data.append(seq)
-#         labels.append(label)
-
-#     return data, labels
-
-# scaler = MinMaxScaler(feature_range=(0,1))
-# rescaledX = scaler.fit_transform(train[:,2:-1])
-
-# rescaledX = np.hstack((rescaledX, train[:,1:2]))
-
-# print("Making timestep sets (Step size: %s, History: %s days, Target value size: %s day(s))" % (_step, _back_in_time, _target_size))
-
-# X, y = handle_data(
-#     rescaledX, train[:, -1], 
-#     0, 
-#     len(train), 
-#     _back_in_time, 
-#     _target_size,
-#     _step, 
-#     single_step=True)
-
-# train_csv = pd.DataFrame(rescaledX, columns=[
-#     "maintenance_day",
-#     "produced_today",
-#     "times_down_today",
-#     "amount_down_today",
-#     "day_of_week"
-#  ])
-
-# train_csv['days_to_maintenance'] = train[:,-1]
-# train_csv.to_csv("/models/train.csv", index=False)
-
-# X_train, X_tmp, y_train, y_tmp = train_test_split(X, y, test_size=0.20)
-# X_val, X_test, y_val, y_test = train_test_split(X_tmp, y_tmp, test_size=0.50)
-
-# print("Made", len(y), "datasets total...")
-# print("Made", len(y_train), "train datasets...")
-# print("Made", len(y_val), "validation datasets...")
-# print("Made", len(y_test), "test datasets...")
-
-# train_dataset = tf.data.Dataset.from_tensor_slices((X_train, y_train))
-# train_dataset = train_dataset.cache().shuffle(_buffer_size).batch(_batch_size)
-
-# val_dataset = tf.data.Dataset.from_tensor_slices((X_val, y_val))
-# val_dataset = val_dataset.cache().shuffle(_buffer_size).batch(_batch_size)
-
-# test_dataset = tf.data.Dataset.from_tensor_slices(X_test)
-# test_dataset = test_dataset.cache().batch(_batch_size)
-
 
 
 ### Define callbacks
@@ -261,7 +201,6 @@ if build_mode:
     # Shape = (6, 2, 16, 60, 4)
     # Shape = (batches, (x and y), batch_size, history_size, parameters)
     dataset_list = list(test_dataset.as_numpy_iterator())
-    #dataset_list = dataset_list.flatten()
 
     x_s = []
     y_s = []
@@ -272,15 +211,6 @@ if build_mode:
 
         for ite in item[1]:
             y_s.append(ite)
-
-    print(len(x_s))
-    print(len(y_s))
-
-    #dataset_list = dataset_list.flatten()
-    
-    #dataset_arr = np.concatenate(dataset_list)
-
-    #x_s = np.reshape(x_s, newshape=(-1, 60, 4))
 
     for i in range(len(predictions)):
 
