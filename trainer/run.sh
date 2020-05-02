@@ -1,6 +1,6 @@
 path=/home/$(whoami)/container-data/
 path_logs=$path/logs/
-path_models=$(pwd)/../models/
+path_models=$(pwd)/models/
 mkdir -p $path_logs
 mkdir -p $path_models
 

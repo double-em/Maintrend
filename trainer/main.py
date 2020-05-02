@@ -33,7 +33,7 @@ from tensorboard.plugins.hparams import api as hp
 
 
 model_name = "test"
-model_version = 3
+model_version = 4
 
 time_now_string = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 log_dir = "logs/"
@@ -72,7 +72,7 @@ build_mode = True
 
 if build_mode:
     hparams = {
-        hp_hidden_num_layers: 1,
+        hp_hidden_num_layers: 3,
         hp_optimizer: 'rmsprop',
         hp_output_units: 300
     }
