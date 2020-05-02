@@ -1,2 +1,2 @@
 # TrendlogDataApp
-![Predictor Build](https://github.com/Zxited/TrendlogDataApp/workflows/publish-predictor-model/badge.svg?branch=master)
+![Predictor build](https://github.com/Zxited/TrendlogDataApp/workflows/Predictor%20build/badge.svg?branch=master)
