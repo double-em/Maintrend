@@ -56,7 +56,7 @@ hp_hidden_num_layers = hp.HParam('hidden_num_layers', hp.IntInterval(0, 4))
 hp_optimizer = hp.HParam('optimizer', hp.Discrete(['nadam', 'adam', 'rmsprop', 'sgd']))
 hp_output_units = hp.HParam('output_units', hp.Discrete([50, 300, 600]))
 
-hypertune = True
+hypertune = False
 
 hp.hparams_config(
     hparams=[hp_hidden_num_layers, hp_optimizer, hp_output_units],
@@ -66,11 +66,11 @@ hp.hparams_config(
 
 
 ### Build model
-build_mode = False
+build_mode = True
 
 if build_mode:
     hparams = {
-        hp_hidden_num_layers: 1,
+        hp_hidden_num_layers: 3,
         hp_optimizer: 'rmsprop',
         hp_output_units: 300
     }
