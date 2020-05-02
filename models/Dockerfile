@@ -1,6 +1,6 @@
 FROM tensorflow/serving
 
-ENV MODEL_NAME prod
+ENV MODEL_NAME predictor
 
 WORKDIR /models
 ADD . /
