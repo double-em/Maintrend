@@ -31,7 +31,7 @@ from tensorboard.plugins.hparams import api as hp
 
 
 model_name = "test"
-model_version = 40
+model_version = 1
 
 time_now_string = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 log_dir = "logs/"
@@ -41,7 +41,7 @@ print("\nVisible Devices:", tf.config.get_visible_devices())
 
 _patience = 60
 
-_batch_size = 32
+_batch_size = 16
 _buffer_size = 10000
 
 _max_epochs = 1000
@@ -56,7 +56,7 @@ hp_hidden_num_layers = hp.HParam('hidden_num_layers', hp.IntInterval(0, 4))
 hp_optimizer = hp.HParam('optimizer', hp.Discrete(['nadam', 'adam', 'rmsprop', 'sgd']))
 hp_output_units = hp.HParam('output_units', hp.Discrete([50, 300, 600]))
 
-hypertune = False
+hypertune = True
 
 hp.hparams_config(
     hparams=[hp_hidden_num_layers, hp_optimizer, hp_output_units],
@@ -66,7 +66,7 @@ hp.hparams_config(
 
 
 ### Build model
-build_mode = True
+build_mode = False
 
 if build_mode:
     hparams = {

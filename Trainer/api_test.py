@@ -1,6 +1,7 @@
 import numpy as np
 import requests
 import json
+from json import JSONEncoder
 import importlib
 api = importlib.import_module("API_Puller")
 util = importlib.import_module("util")
@@ -53,20 +54,24 @@ threshold = 3
 
 differ = util.DifferenceHolder(threshold)
 
+class NumpyArrayEncoder(JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return JSONEncoder.default(self, obj)
+
 for i in range(pred_amount):
+
+    new_new = json.dumps(X[i][0], cls=NumpyArrayEncoder)
     tcx = [[]]
+    tcx[0] = X[i][0]
 
-    tcx[0] = np.array(X[i]).tolist()
-
-    data = json.dumps({"signature_name":"serving_default", "instances":tcx})
-
+    data = json.dumps({"signature_name":"serving_default", "instances":tcx}, cls=NumpyArrayEncoder)
     headers = {"content-type":"application/json"}
     json_response = requests.post("http://localhost:8501/v1/models/prod:predict", data=data, headers=headers)
     predictions = json.loads(json_response.text)['predictions']
 
-    print(predictions)
-
-    true_value = y[i]
+    true_value = X[i][1]
 
     single_prediction = predictions[0][0]
 
