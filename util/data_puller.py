@@ -14,47 +14,44 @@ import tensorflow as tf
 start = "14-04-2021 00:00:01"
 end = "13-04-2015 00:00:00"
 
-baseUrl = os.environ['API_BASE_URL'] + '/' + os.environ['API_CHANNEL'] + '/' + os.environ['API_F']
-apikey = os.environ['API_KEY']
-dst = "true"
-status = "true"
+def apicall(viewid, req_url, payload, apikey):
+    dst = "true"
+    status = "true"
 
-def apicall(viewid, payload):
     queryDictionary = {"apikey":apikey, "start":start, "end":end, "dst":dst, "viewid":viewid, "status":status, "wherevalue":">0"}
-    reqUrl = baseUrl
 
     print("\nPulling data from API...")
-    ("Url: %s \nAPI key: %s" % (baseUrl, apikey))
+    ("Url: %s \nAPI key: %s" % (req_url, apikey))
 
     first_key = True
     for key in queryDictionary:
         if first_key:
-            reqUrl += "?%s=%s" % (key, queryDictionary[key])
+            req_url += "?%s=%s" % (key, queryDictionary[key])
             first_key = False
         else:
-            reqUrl += "&%s=%s" % (key, queryDictionary[key])
+            req_url += "&%s=%s" % (key, queryDictionary[key])
 
-    print("\nRequesting:", reqUrl)
-    req = requests.post(reqUrl, json=payload)
+    print("\nRequesting:", req_url)
+    req = requests.post(req_url, json=payload)
 
     return req.json()['channel']['feeds'][0]['points'], req.elapsed.total_seconds()
 
 
 
-def apicallv3(history_size):
+def apicallv3(history_size, req_url, apikey):
 
     print("\n==================================================================================\n")
 
     # Times down call
     viewid = "670"
     payload = {"0":{"feedid":"oee_stopsec", "methode":"none"}}
-    jsonResponseD, elapsed = apicall(viewid, payload)
+    jsonResponseD, elapsed = apicall(viewid, req_url, payload, apikey)
     print("Times down API call got: %s points, call took: %s seconds" % (len(jsonResponseD), elapsed))
 
     # Production amount call
     viewid = "694"
     payload = {"0":{"feedid":"p1_cnt","methode":"diff"}}
-    jsonResponseP, elapsed = apicall(viewid, payload)
+    jsonResponseP, elapsed = apicall(viewid, req_url, payload, apikey)
     print("Production amount API call got: %s points, call took: %s seconds" % (len(jsonResponseP), elapsed))
 
     start_time =  time.perf_counter()

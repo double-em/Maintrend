@@ -7,10 +7,12 @@ import requests
 import json
 import importlib
 from pathlib import Path
-api = importlib.import_module("API_Puller")
-util = importlib.import_module("util")
+import util.data_puller as api
+import util.difference_holder as dh
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+base_url = os.environ['API_BASE_URL'] + '/' + os.environ['API_CHANNEL'] + '/' + os.environ['API_F']
+apikey = os.environ['API_KEY']
 
 ### Debug logging
 # 0 = all messages are logged (default behavior)
@@ -70,7 +72,7 @@ build_mode = True
 
 if build_mode:
     hparams = {
-        hp_hidden_num_layers: 3,
+        hp_hidden_num_layers: 1,
         hp_optimizer: 'rmsprop',
         hp_output_units: 300
     }
@@ -86,7 +88,7 @@ _loss = keras.losses.mean_absolute_error
 # _loss = keras.losses.mean_squared_error
 
 # train_old = api.pulldata2()
-train = api.apicallv3(_back_in_time)
+train = api.apicallv3(_back_in_time, base_url, apikey)
 trian_length = len(list(train.as_numpy_iterator()))
 train_size = int(0.8 * trian_length)
 val_size = int(0.1 * trian_length)
@@ -194,7 +196,7 @@ if build_mode:
 
     ### Test model
     treshold = 3
-    differ = util.DifferenceHolder(treshold)
+    differ = dh.DifferenceHolder(treshold)
 
     predictions = model_temp.predict(test_dataset)
 
@@ -222,7 +224,7 @@ if build_mode:
 
         i += 1
     
-    util.PrintFinal(differ)
+    dh.PrintFinal(differ)
 
 
 

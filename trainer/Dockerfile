@@ -8,12 +8,13 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
 # Install pip requirements
-ADD requirements.txt .
+ADD trainer/requirements.txt .
 RUN python -m pip install -r requirements.txt
 
-WORKDIR /
-ADD . /app
+WORKDIR /app
+ADD trainer .
+ADD util util
 
 USER root
 # During debugging, this entry point will be overridden. For more information, refer to https://aka.ms/vscode-docker-python-debug
-CMD ["python", "app/main.py"]
+CMD ["python", "main.py"]
