@@ -217,14 +217,6 @@ def apicallv3(history_size):
 
 def pulldata2():
 
-    start = "14-04-2021 00:00:01"
-    end = "13-04-2015 00:00:00"
-
-    baseUrl = "***REMOVED***"
-    apikey = "***REMOVED***"
-    dst = "true"
-    status = "true"
-
     print("\n==================================================================================\n")
     print("\nPulling data from API...")
     print("Url: %s \nAPI key: %s" % (baseUrl, apikey))
@@ -429,16 +421,6 @@ def pulldata2():
 def pulldata():
     
     ### API Data ###
-    # Standard Values
-    start = "14-04-2021 00:00:01"
-    end = "13-04-2015 00:00:00"
-
-    baseUrl = "***REMOVED***"
-    apikey = "***REMOVED***"
-    dst = "true"
-    status = "true"
-
-
     print("\nPulling data from API...")
     print("Url: %s \nAPI key: %s" % (baseUrl, apikey))
 
