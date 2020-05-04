@@ -24,6 +24,5 @@ WORKDIR /app
 ADD trainer .
 ADD util util
 
-USER root
 # During debugging, this entry point will be overridden. For more information, refer to https://aka.ms/vscode-docker-python-debug
 CMD ["python", "main.py"]
