@@ -190,7 +190,8 @@ if build_mode:
     compile_and_fit(model_temp, model_temp.name, hparams, hparams[hp_optimizer])
 
     print("\nSaving model:", model_temp.name)
-    # Model version is NEEDED or Tensorflow Serve cant find any "serverable versions"
+    
+    # NOTE: Model version is NEEDED or Tensorflow Serve cant find any "serverable versions"
     save_path = "%s/%s/%s" % (models_dir, model_temp.name, str(model_version))
     model_temp.save(save_path)
 

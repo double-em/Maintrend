@@ -52,7 +52,7 @@ def api_datapredict_all():
     queryDictionaryD = {"apikey":apikey, "start":string_to, "end":string_from, "dst":dst, "viewid":viewid, "status":status, "wherevalue":">0"}
     payloadD = {"0":{"feedid":"oee_stopsec", "methode":"none"}}
 
-    reqUrl = "%s/%s/***REMOVED***" % (baseUrl, channel_id)
+    reqUrl = "%s/%s/feeds2" % (baseUrl, channel_id)
     first_key = True
     for key in queryDictionaryD:
         if first_key:
@@ -76,7 +76,7 @@ def api_datapredict_all():
     queryDictionaryP = {"apikey":apikey, "start":string_to, "end":string_from, "dst":dst, "viewid":viewid, "status":status}
     payload = {"0":{"feedid":"p1_cnt","methode":"diff"}}
 
-    reqUrl = "%s/%s/***REMOVED***" % (baseUrl, channel_id)
+    reqUrl = "%s/%s/feeds2" % (baseUrl, channel_id)
     first_key = True
     for key in queryDictionaryP:
         if first_key:
@@ -268,7 +268,7 @@ def api_datapull_all():
     queryDictionaryD = {"apikey":apikey, "start":string_to, "end":string_from, "dst":dst, "viewid":viewid, "status":status, "wherevalue":">0"}
     payloadD = {"0":{"feedid":"oee_stopsec", "methode":"none"}}
 
-    reqUrl = "%s/%s/***REMOVED***" % (baseUrl, channel_id)
+    reqUrl = "%s/%s/feeds2" % (baseUrl, channel_id)
     first_key = True
     for key in queryDictionaryD:
         if first_key:
@@ -292,7 +292,7 @@ def api_datapull_all():
     queryDictionaryP = {"apikey":apikey, "start":datetime_to, "end":datetime_from, "dst":dst, "viewid":viewid, "status":status}
     payload = {"0":{"feedid":"p1_cnt","methode":"diff"}}
 
-    reqUrl = "%s/%s/***REMOVED***" % (baseUrl, channel_id)
+    reqUrl = "%s/%s/feeds2" % (baseUrl, channel_id)
     first_key = True
     for key in queryDictionaryP:
         if first_key:

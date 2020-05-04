@@ -54,7 +54,7 @@ viewid = "694"
 queryDictionaryP = {"apikey":apikey, "start":string_to, "end":string_from, "dst":dst, "viewid":viewid, "status":status}
 payload = {"0":{"feedid":"p1_cnt","methode":"diff"}}
 
-reqUrl = "%s/%s/***REMOVED***" % (baseUrl, channel_id)
+reqUrl = "%s/%s/feeds2" % (baseUrl, channel_id)
 first_key = True
 for key in queryDictionaryP:
     if first_key:
