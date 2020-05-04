@@ -11,14 +11,17 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 
-start = "14-04-2021 00:00:01"
-end = "13-04-2015 00:00:00"
+# start = "14-04-2021 00:00:01"
+# end = "13-04-2015 00:00:00"
 
-def apicall(viewid, req_url, payload, apikey):
+def apicall(viewid, req_url, payload, apikey, start, end):
     dst = "true"
     status = "true"
 
-    queryDictionary = {"apikey":apikey, "start":start, "end":end, "dst":dst, "viewid":viewid, "status":status, "wherevalue":">0"}
+    start = datetime.datetime.strptime(start, "%Y-%m-%d %H:%M:%S")
+    end = datetime.datetime.strptime(end, "%Y-%m-%d %H:%M:%S")
+
+    queryDictionary = {"apikey":apikey, "start":start.strftime("%d-%m-%Y %H:%M:%S"), "end":end.strftime("%d-%m-%Y %H:%M:%S"), "dst":dst, "viewid":viewid, "status":status, "wherevalue":">0"}
 
     print("\nPulling data from API...")
     ("Url: %s \nAPI key: %s" % (req_url, apikey))
@@ -38,20 +41,20 @@ def apicall(viewid, req_url, payload, apikey):
 
 
 
-def apicallv3(history_size, req_url, apikey):
+def apicallv3(history_size, req_url, apikey, start, end):
 
     print("\n==================================================================================\n")
 
     # Times down call
     viewid = "670"
     payload = {"0":{"feedid":"oee_stopsec", "methode":"none"}}
-    jsonResponseD, elapsed = apicall(viewid, req_url, payload, apikey)
+    jsonResponseD, elapsed = apicall(viewid, req_url, payload, apikey, start, end)
     print("Times down API call got: %s points, call took: %s seconds" % (len(jsonResponseD), elapsed))
 
     # Production amount call
     viewid = "694"
     payload = {"0":{"feedid":"p1_cnt","methode":"diff"}}
-    jsonResponseP, elapsed = apicall(viewid, req_url, payload, apikey)
+    jsonResponseP, elapsed = apicall(viewid, req_url, payload, apikey,  start, end)
     print("Production amount API call got: %s points, call took: %s seconds" % (len(jsonResponseP), elapsed))
 
     start_time =  time.perf_counter()

@@ -33,7 +33,7 @@ from tensorboard.plugins.hparams import api as hp
 
 
 model_name = "test"
-model_version = 4
+model_version = 5
 
 time_now_string = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 log_dir = "logs/"
@@ -88,7 +88,7 @@ _loss = keras.losses.mean_absolute_error
 # _loss = keras.losses.mean_squared_error
 
 # train_old = api.pulldata2()
-train = api.apicallv3(_back_in_time, base_url, apikey)
+train = api.apicallv3(_back_in_time, base_url, apikey, "2099-01-31 00:00:00", "2000-01-31 00:00:00")
 trian_length = len(list(train.as_numpy_iterator()))
 train_size = int(0.8 * trian_length)
 val_size = int(0.1 * trian_length)

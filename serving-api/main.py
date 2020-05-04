@@ -23,6 +23,9 @@ pred_model = load_model("logs/pred_model")
 import flask
 from flask import request, jsonify
 
+base_url = os.environ['API_BASE_URL'] + '/' + os.environ['API_CHANNEL'] + '/' + os.environ['API_F']
+apikey = os.environ['API_KEY']
+
 # app = flask.Flask('DatahandlerAPI')
 app = flask.Flask(__name__)
 app.config['DEBUG'] = True
