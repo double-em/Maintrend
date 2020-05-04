@@ -9,13 +9,13 @@ import json
 import flask
 from flask import request, jsonify
 
-baseUrl = "***REMOVED***"
+base_url = os.environ['API_BASE_URL'] + '/' + os.environ['API_CHANNEL'] + '/' + os.environ['API_F']
 dst = "true"
 status = "true"
 
 print("Got API call for Datahandler!")
 
-apikey = "***REMOVED***"
+apikey = os.environ['API_KEY']
 channel_id = 20
 datetime_from = datetime.datetime.strptime("13-04-2019 00:00:00", "%d-%m-%Y %H:%M:%S")
 datetime_to = datetime.datetime.strptime("14-04-2020 00:00:01", "%d-%m-%Y %H:%M:%S")
@@ -30,7 +30,7 @@ string_from = datetime_from.strftime("%d-%m-%Y %H:%M:%S")
 queryDictionaryD = {"apikey":apikey, "start":string_to, "end":string_from, "dst":dst, "viewid":viewid, "status":status, "wherevalue":">0"}
 payloadD = {"0":{"feedid":"oee_stopsec", "methode":"none"}}
 
-reqUrl = "%s/%s/***REMOVED***" % (baseUrl, channel_id)
+reqUrl = base_url
 first_key = True
 for key in queryDictionaryD:
     if first_key:
