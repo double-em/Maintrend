@@ -30,22 +30,24 @@ from tensorflow.python import debug as tf_debug
 from tensorboard.plugins.hparams import api as hp
 
 
-model_name = "test"
-model_version = 5
 
-time_now_string = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+model_name = "test"
 log_dir = "logs"
-models_dir = "models"
+model_dir = "models"
 
 _patience = 60
 
 _batch_size = 16
 _buffer_size = 10000
 
-_max_epochs = 40
+_max_epochs = 20
 _back_in_time = 60 # Days
 _step = 1 # Days to offset next dataset
 _target_size = 1 # How many to predict
+
+build_mode = True
+test_mode = True
+save_mode = True
 
 
 
@@ -54,24 +56,17 @@ hp_hidden_num_layers = hp.HParam('hidden_num_layers', hp.IntInterval(0, 4))
 hp_optimizer = hp.HParam('optimizer', hp.Discrete(['nadam', 'adam', 'rmsprop', 'sgd']))
 hp_output_units = hp.HParam('output_units', hp.Discrete([50, 300, 600]))
 
-hypertune = False
-
 hp.hparams_config(
     hparams=[hp_hidden_num_layers, hp_optimizer, hp_output_units],
     metrics=[hp.Metric('mae', display_name="Mean Absolute Error")]
 )
 
-
-
-### Build model
-build_mode = True
-
 if build_mode:
-    hparams = {
-        hp_hidden_num_layers: 3,
-        hp_optimizer: 'rmsprop',
-        hp_output_units: 300
-    }
+    hp_hidden_num_layers = hp.HParam('hidden_num_layers', hp.IntInterval(3, 3))
+    hp_optimizer = hp.HParam('optimizer', hp.Discrete(['rmsprop']))
+    hp_output_units = hp.HParam('output_units', hp.Discrete([300]))
+
+
 
 ### Optimizers
 _optimizer = keras.optimizers.Nadam()
@@ -117,9 +112,9 @@ def get_callbacks(name, hparams, log_path):
 
 
 ### Compile and Fit
-def compile_and_fit(model, name, hparams, optimizer=_optimizer, loss=_loss, max_epochs=_max_epochs):
+def compile_and_fit(model, name, hparams, version, optimizer=_optimizer, loss=_loss, max_epochs=_max_epochs):
     
-    log_dir_path = log_dir + "/" + str(model_version) + "/" + name
+    log_dir_path = log_dir + "/" + name + "/" + str(version)
     trainer_logger.debug(f"Model log directory: {log_dir_path}")
 
     trainer_logger.info(f"Compiling model {name}...")
@@ -164,45 +159,17 @@ def model_builder(name, hparams):
 
 
 
-### Trainer loop
-if hypertune:
-    session_version = 0
-
-    for output_units in hp_output_units.domain.values:
-        for hidden_num_layers in range(hp_hidden_num_layers.domain.min_value, (hp_hidden_num_layers.domain.max_value + 1)):
-            for optimizer in hp_optimizer.domain.values:
-                hparams = {
-                    hp_hidden_num_layers: hidden_num_layers,
-                    hp_optimizer: optimizer,
-                    hp_output_units: output_units
-                }
-                
-                trainer_logger.info(f"Starting session: {session_version}")
-                trainer_logger.debug(f"Using Hyperparameters: {hparams[h] for h in hparams}")
-
-                model_tmp = model_builder(str(session_version), hparams)
-                compile_and_fit(model_tmp, model_tmp.name, hparams, hparams[hp_optimizer])
-
-                session_version += 1
-
-if build_mode:
-    model_temp = model_builder("prod", hparams)
-    compile_and_fit(model_temp, model_temp.name, hparams, hparams[hp_optimizer])
-
-    # NOTE: Model version is NEEDED or Tensorflow Serve cant find any "serverable versions"
-    save_path = "%s/%s/%s" % (models_dir, model_temp.name, str(model_version))
-    trainer_logger.info(f"Saving model at: {save_path}")
-    model_temp.save(save_path)
-
-    ### Test model
+### Test model
+def test_model(model):
+    
     treshold = 3
     differ = dh.DifferenceHolder(treshold, trainer_logger)
 
     trainer_logger.debug(f"Testing model with {treshold} day(s) treshold...")
-    predictions = model_temp.predict(test_dataset)
+    predictions = model.predict(test_dataset)
 
-    # Shape = (6, 2, 16, 60, 4)
-    # Shape = (batches, (x and y), batch_size, history_size, parameters)
+    # NOTE: Shape = (6, 2, 16, 60, 4)
+    # NOTE: Shape = (batches, (x and y), batch_size, history_size, parameters)
     dataset_list = list(test_dataset.as_numpy_iterator())
 
     x_s = []
@@ -226,6 +193,42 @@ if build_mode:
         i += 1
     
     differ.PrintFinal()
+
+
+
+def save_model(model, path):
+    # NOTE: Model version is NEEDED or Tensorflow Serve cant find any "serverable versions"
+    trainer_logger.info(f"Saving model '{model_name}' at: {path}")
+    model.save(path)
+
+
+
+### Trainer loop
+session_version = 1
+
+for output_units in hp_output_units.domain.values:
+    for hidden_num_layers in range(hp_hidden_num_layers.domain.min_value, (hp_hidden_num_layers.domain.max_value + 1)):
+        for optimizer in hp_optimizer.domain.values:
+            hparams = {
+                hp_hidden_num_layers: hidden_num_layers,
+                hp_optimizer: optimizer,
+                hp_output_units: output_units
+            }
+            
+            trainer_logger.info(f"Starting session: {session_version}")
+            trainer_logger.debug(f"Using Hyperparameters: {hparams[h] for h in hparams}")
+
+            model_tmp = model_builder(model_name, hparams)
+            compile_and_fit(model_tmp, model_tmp.name, hparams, session_version, hparams[hp_optimizer])
+
+            if test_mode:
+                test_model(model_tmp)
+
+            if save_mode:
+                model_save_path = model_dir + "/" + model_tmp.name + "/" + str(session_version)
+                save_model(model_tmp, model_save_path)
+
+            session_version += 1
 
 
 
