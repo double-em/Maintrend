@@ -12,10 +12,10 @@ if [ "$(docker images -q maintrend-trainer:latest)" == "" ]; then
 fi
 
 docker run -it --rm --gpus all \
--v $path_code:/app/trainer/ \
--v $path_util:/app/trainer/util/ \
--v $path_logs:/logs \
--v $path_models:/models \
+-v $path_code:/app \
+-v $path_util:/app/util \
+-v $path_logs:/app/logs \
+-v $path_models:/app/models \
 -e API_BASE_URL=$API_BASE_URL \
 -e API_CHANNEL=$API_CHANNEL \
 -e API_F=$API_F \

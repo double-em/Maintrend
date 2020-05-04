@@ -130,3 +130,5 @@ dmypy.json
 
 container-data/
 trainer/util
+trainer/models
+trainer/logs

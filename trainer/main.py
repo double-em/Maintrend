@@ -42,7 +42,7 @@ _patience = 60
 _batch_size = 16
 _buffer_size = 10000
 
-_max_epochs = 1000
+_max_epochs = 40
 _back_in_time = 60 # Days
 _step = 1 # Days to offset next dataset
 _target_size = 1 # How many to predict
@@ -108,8 +108,8 @@ def get_callbacks(name, hparams, log_path):
         EarlyStopping(monitor="val_loss", patience=_patience, restore_best_weights=True),
         TensorBoard(
             log_dir=log_path,
-            profile_batch=0,
-            histogram_freq=0
+            profile_batch=2,
+            histogram_freq=1
         ),
         hp.KerasCallback(log_path, hparams, name)
     ]
