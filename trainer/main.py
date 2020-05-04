@@ -103,16 +103,15 @@ test_dataset = test_dataset.skip(val_size).batch(_batch_size, drop_remainder=Tru
 
 
 ### Define callbacks
-def get_callbacks(name, hparams):
-    log_dir_path = log_dir + "/" + str(model_version) + "/" + name
-    trainer_logger.debug(f"Model log directory: {log_dir_path}")
+def get_callbacks(name, hparams, log_path):
     return [
         EarlyStopping(monitor="val_loss", patience=_patience, restore_best_weights=True),
         TensorBoard(
-            log_dir=log_dir_path,
-            histogram_freq=1
+            log_dir=log_path,
+            profile_batch=0,
+            histogram_freq=0
         ),
-        hp.KerasCallback(log_dir_path, hparams, name)
+        hp.KerasCallback(log_path, hparams, name)
     ]
 
 
@@ -120,6 +119,9 @@ def get_callbacks(name, hparams):
 ### Compile and Fit
 def compile_and_fit(model, name, hparams, optimizer=_optimizer, loss=_loss, max_epochs=_max_epochs):
     
+    log_dir_path = log_dir + "/" + str(model_version) + "/" + name
+    trainer_logger.debug(f"Model log directory: {log_dir_path}")
+
     trainer_logger.info(f"Compiling model {name}...")
     model.compile(loss=loss, optimizer=optimizer)
 
@@ -130,7 +132,9 @@ def compile_and_fit(model, name, hparams, optimizer=_optimizer, loss=_loss, max_
         epochs=max_epochs, 
         validation_data=val_dataset, 
         verbose=1, 
-        callbacks=get_callbacks(name, hparams))
+        callbacks=get_callbacks(name, hparams, log_dir_path))
+
+    print()
     
     return model_history
 
@@ -192,7 +196,7 @@ if build_mode:
 
     ### Test model
     treshold = 3
-    differ = dh.DifferenceHolder(treshold, trainer_logger, True)
+    differ = dh.DifferenceHolder(treshold, trainer_logger)
 
     trainer_logger.debug(f"Testing model with {treshold} day(s) treshold...")
     predictions = model_temp.predict(test_dataset)
