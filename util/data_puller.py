@@ -6,8 +6,14 @@ import datetime
 import requests
 import json
 import time
+import logging
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+
+data_puller = logging.getLogger('data_puller')
+logging.basicConfig()
+data_puller.setLevel(logging.DEBUG)
+
 from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 
@@ -23,7 +29,7 @@ def apicall(viewid, req_url, payload, apikey, start, end):
 
     queryDictionary = {"apikey":apikey, "start":start.strftime("%d-%m-%Y %H:%M:%S"), "end":end.strftime("%d-%m-%Y %H:%M:%S"), "dst":dst, "viewid":viewid, "status":status, "wherevalue":">0"}
 
-    print("\nPulling data from API...")
+    data_puller.info("\nPulling data from API...")
     ("Url: %s \nAPI key: %s" % (req_url, apikey))
 
     first_key = True
@@ -34,7 +40,7 @@ def apicall(viewid, req_url, payload, apikey, start, end):
         else:
             req_url += "&%s=%s" % (key, queryDictionary[key])
 
-    print("\nRequesting:", req_url)
+    data_puller.debug("\nRequesting:", req_url)
     req = requests.post(req_url, json=payload)
 
     return req.json()['channel']['feeds'][0]['points'], req.elapsed.total_seconds()
@@ -43,19 +49,19 @@ def apicall(viewid, req_url, payload, apikey, start, end):
 
 def apicallv3(history_size, req_url, apikey, start, end):
 
-    print("\n==================================================================================\n")
+    # print("\n==================================================================================\n")
 
     # Times down call
     viewid = "670"
     payload = {"0":{"feedid":"oee_stopsec", "methode":"none"}}
     jsonResponseD, elapsed = apicall(viewid, req_url, payload, apikey, start, end)
-    print("Times down API call got: %s points, call took: %s seconds" % (len(jsonResponseD), elapsed))
+    data_puller.debug("Times down API call got: %s points, call took: %s seconds" % (len(jsonResponseD), elapsed))
 
     # Production amount call
     viewid = "694"
     payload = {"0":{"feedid":"p1_cnt","methode":"diff"}}
     jsonResponseP, elapsed = apicall(viewid, req_url, payload, apikey,  start, end)
-    print("Production amount API call got: %s points, call took: %s seconds" % (len(jsonResponseP), elapsed))
+    data_puller.debug("Production amount API call got: %s points, call took: %s seconds" % (len(jsonResponseP), elapsed))
 
     start_time =  time.perf_counter()
 
