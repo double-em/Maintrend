@@ -5,20 +5,18 @@ import sys
 import datetime
 import requests
 import json
+import logging
 import importlib
 from pathlib import Path
 import util.data_puller as api
 import util.difference_holder as dh
 
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+trainer_logger = logging.getLogger('trainer')
+logging.basicConfig(format="%(asctime)s: %(levelname)s: %(name)s: %(message)s")
+trainer_logger.setLevel(logging.DEBUG)
+
 base_url = os.environ['API_BASE_URL'] + '/' + os.environ['API_CHANNEL'] + '/' + os.environ['API_F']
 apikey = os.environ['API_KEY']
-
-### Debug logging
-# 0 = all messages are logged (default behavior)
-# 1 = INFO messages are not printed
-# 2 = INFO and WARNING messages are not printed
-# 3 = INFO, WARNING, and ERROR messages are not printed
 
 import tensorflow as tf
 from tensorflow import keras
@@ -36,17 +34,15 @@ model_name = "test"
 model_version = 5
 
 time_now_string = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-log_dir = "logs/"
-models_dir = "models/"
-
-print("\nVisible Devices:", tf.config.get_visible_devices())
+log_dir = "logs"
+models_dir = "models"
 
 _patience = 60
 
 _batch_size = 16
 _buffer_size = 10000
 
-_max_epochs = 1000
+_max_epochs = 20
 _back_in_time = 60 # Days
 _step = 1 # Days to offset next dataset
 _target_size = 1 # How many to predict
@@ -87,6 +83,9 @@ _optimizer = keras.optimizers.Nadam()
 _loss = keras.losses.mean_absolute_error
 # _loss = keras.losses.mean_squared_error
 
+print()
+trainer_logger.debug(f"Visible Devices: {tf.config.get_visible_devices()}")
+
 # train_old = api.pulldata2()
 train = api.apicallv3(_back_in_time, base_url, apikey, "2099-01-31 00:00:00", "2000-01-31 00:00:00")
 trian_length = len(list(train.as_numpy_iterator()))
@@ -105,7 +104,8 @@ test_dataset = test_dataset.skip(val_size).batch(_batch_size, drop_remainder=Tru
 
 ### Define callbacks
 def get_callbacks(name, hparams):
-    log_dir_path = log_dir + str(model_version) + "/" + name
+    log_dir_path = log_dir + "/" + str(model_version) + "/" + name
+    trainer_logger.debug(f"Model log directory: {log_dir_path}")
     return [
         EarlyStopping(monitor="val_loss", patience=_patience, restore_best_weights=True),
         TensorBoard(
@@ -119,31 +119,27 @@ def get_callbacks(name, hparams):
 
 ### Compile and Fit
 def compile_and_fit(model, name, hparams, optimizer=_optimizer, loss=_loss, max_epochs=_max_epochs):
+    
+    trainer_logger.info(f"Compiling model {name}...")
     model.compile(loss=loss, optimizer=optimizer)
 
-    #model.summary()
-    print("Optimizer:", model.optimizer)
-
-    print("\nTraining model...")
+    trainer_logger.info(f"Fitting model {name}...")
 
     model_history = model.fit(
         train_dataset, 
         epochs=max_epochs, 
-        #steps_per_epoch=len(y_train), 
         validation_data=val_dataset, 
-        #validation_steps=len(y_val),
-        #validation_split=0.10,
         verbose=1, 
         callbacks=get_callbacks(name, hparams))
     
     return model_history
 
-print("\n\n")
-
 
 
 ### Dynamic model builder
 def model_builder(name, hparams):
+
+    trainer_logger.info(f"Building model {name}...")
 
     model = Sequential(name=name)
 
@@ -176,9 +172,9 @@ if hypertune:
                     hp_optimizer: optimizer,
                     hp_output_units: output_units
                 }
-
-                print("Starting session:", session_version)
-                print({h.name: hparams[h] for h in hparams})
+                
+                trainer_logger.info(f"Starting session: {session_version}")
+                trainer_logger.debug(f"Using Hyperparameters: {hparams[h] for h in hparams}")
 
                 model_tmp = model_builder(str(session_version), hparams)
                 compile_and_fit(model_tmp, model_tmp.name, hparams, hparams[hp_optimizer])
@@ -189,16 +185,16 @@ if build_mode:
     model_temp = model_builder("prod", hparams)
     compile_and_fit(model_temp, model_temp.name, hparams, hparams[hp_optimizer])
 
-    print("\nSaving model:", model_temp.name)
-    
     # NOTE: Model version is NEEDED or Tensorflow Serve cant find any "serverable versions"
     save_path = "%s/%s/%s" % (models_dir, model_temp.name, str(model_version))
+    trainer_logger.info(f"Saving model at: {save_path}")
     model_temp.save(save_path)
 
     ### Test model
     treshold = 3
-    differ = dh.DifferenceHolder(treshold)
+    differ = dh.DifferenceHolder(treshold, trainer_logger, True)
 
+    trainer_logger.debug(f"Testing model with {treshold} day(s) treshold...")
     predictions = model_temp.predict(test_dataset)
 
     # Shape = (6, 2, 16, 60, 4)
@@ -225,7 +221,7 @@ if build_mode:
 
         i += 1
     
-    dh.PrintFinal(differ)
+    differ.PrintFinal()
 
 
 

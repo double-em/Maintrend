@@ -8,17 +8,12 @@ import json
 import time
 import logging
 
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
-
-data_puller = logging.getLogger('data_puller')
-logging.basicConfig()
-data_puller.setLevel(logging.DEBUG)
+data_puller_logger = logging.getLogger('data-puller')
+logging.basicConfig(format="%(asctime)s: %(levelname)s: %(name)s: %(message)s")
+data_puller_logger.setLevel(logging.DEBUG)
 
 from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
-
-# start = "14-04-2021 00:00:01"
-# end = "13-04-2015 00:00:00"
 
 def apicall(viewid, req_url, payload, apikey, start, end):
     dst = "true"
@@ -29,8 +24,7 @@ def apicall(viewid, req_url, payload, apikey, start, end):
 
     queryDictionary = {"apikey":apikey, "start":start.strftime("%d-%m-%Y %H:%M:%S"), "end":end.strftime("%d-%m-%Y %H:%M:%S"), "dst":dst, "viewid":viewid, "status":status, "wherevalue":">0"}
 
-    data_puller.info("\nPulling data from API...")
-    ("Url: %s \nAPI key: %s" % (req_url, apikey))
+    data_puller_logger.info("Requesting data from API...")
 
     first_key = True
     for key in queryDictionary:
@@ -40,8 +34,14 @@ def apicall(viewid, req_url, payload, apikey, start, end):
         else:
             req_url += "&%s=%s" % (key, queryDictionary[key])
 
-    data_puller.debug("\nRequesting: %s" % req_url)
+    data_puller_logger.debug(f"Requesting: {req_url}")
     req = requests.post(req_url, json=payload)
+
+    if req.status_code != 200:
+        data_puller_logger.warning("Failed to get OK response")
+
+    if len(req.json()['channel']['feeds'][0]['points']) < 1:
+        data_puller_logger.error("No data from API call!")
 
     return req.json()['channel']['feeds'][0]['points'], req.elapsed.total_seconds()
 
@@ -49,24 +49,22 @@ def apicall(viewid, req_url, payload, apikey, start, end):
 
 def apicallv3(history_size, req_url, apikey, start, end):
 
-    # print("\n==================================================================================\n")
-
     # Times down call
     viewid = "670"
     payload = {"0":{"feedid":"oee_stopsec", "methode":"none"}}
     jsonResponseD, elapsed = apicall(viewid, req_url, payload, apikey, start, end)
-    data_puller.debug("Times down API call got: %s points, call took: %s seconds" % (len(jsonResponseD), elapsed))
+    data_puller_logger.debug("Times down API call got: %s points, call took: %s seconds" % (len(jsonResponseD), elapsed))
 
     # Production amount call
     viewid = "694"
     payload = {"0":{"feedid":"p1_cnt","methode":"diff"}}
     jsonResponseP, elapsed = apicall(viewid, req_url, payload, apikey,  start, end)
-    data_puller.debug("Production amount API call got: %s points, call took: %s seconds" % (len(jsonResponseP), elapsed))
+    data_puller_logger.debug("Production amount API call got: %s points, call took: %s seconds" % (len(jsonResponseP), elapsed))
 
+    data_puller_logger.info("Starting datahandling...")
     start_time =  time.perf_counter()
 
     df = pd.DataFrame.from_dict(jsonResponseD)
-    print(df)
     df = df.drop('pointid', axis=1)
     df['timestamp'] = pd.to_datetime(df['timestamp'])
     df['value'] = pd.to_numeric(df['value'])
@@ -96,11 +94,14 @@ def apicallv3(history_size, req_url, apikey, start, end):
     df = df.set_index('timestamp')
     df = df.resample('D').sum()
 
+    data_puller_logger.info("Normalizing data...")
+
     df['times_down'] = df['times_down'].mask(df['times_down'] > 40)
     df['times_down'] = df['times_down'].fillna(df['times_down'].mean())
+    
+    if df.isna().sum().sum() > 0:
+        data_puller_logger.warning(f"Data contains {df.isna().sum().sum()} NaN values after comment handling")
 
-    print(df.isna().sum())
-    print(df.describe())
     dfComments = df.pop('comment')
 
     dfP = pd.DataFrame.from_dict(jsonResponseP)
@@ -112,8 +113,10 @@ def apicallv3(history_size, req_url, apikey, start, end):
     dfP['value'] = dfP['value'].mask(dfP['value'] < 0)
     dfP['value'] = dfP['value'].mask(dfP['value'] > 5000)
     dfP['value'] = dfP['value'].fillna(dfP['value'].mean())
-    print(dfP.isna().sum())
-    print(dfP.describe())
+    
+    if dfP.isna().sum().sum() > 0:
+        data_puller_logger.warning(f"Data contains {dfP.isna().sum().sum()} NaN values after data normalization")
+
     dfP = dfP.rename(columns={'value': 'produced'})
     dfP = dfP.set_index('timestamp')
     dfP = dfP.resample('D').sum()
@@ -131,9 +134,8 @@ def apicallv3(history_size, req_url, apikey, start, end):
     # At midnight when the system runs but no downtime
     df = df.fillna(0)
 
-    print(df)
-    print(df.describe())
-    print(df.isna().sum())
+    if df.isna().sum().sum() > 0:
+        data_puller_logger.warning(f"Data contains {df.isna().sum().sum()} NaN values after midnight fill")
 
     # TODO: Sometimes predicts backwards.
     def last_main(dataset):
@@ -178,27 +180,24 @@ def apicallv3(history_size, req_url, apikey, start, end):
 
     newdata[:,1:-1] = scaler.fit_transform(newdata[:,1:-1])
 
+    data_puller_logger.info("Correcting datatypes...")
     tmp_df = pd.DataFrame(newdata).astype({0:'int32', 1:'float32', 2:'float32', 3:'float32', 4:'int32'})
 
-    print(tmp_df)
-    print(tmp_df.describe())
-    print(tmp_df.info())
-
+    if tmp_df.isna().sum().sum() > 0:
+        data_puller_logger.warning(f"Final dataset contains {tmp_df.isna().sum().sum()} NaN values")
+        
     dataset = tf.data.Dataset.from_tensor_slices(tmp_df.values)
-    print("Step 1:\n %s \n" % dataset)
-
+    
+    dataset = dataset.map(lambda row: tf.cast(row, 'float32'))
     dataset = dataset.window(history_size, shift=1, drop_remainder=True)
-    print("Step 2:\n %s \n" % dataset)
-
     dataset = dataset.flat_map(lambda window: window.batch(history_size))
-    print("Step 3:\n %s \n" % dataset)
-
     dataset = dataset.map(lambda window: (window[:,1:], window[-1,0]))
-    print("Step 4:\n %s \n" % dataset)
 
-    print("Datahandling took: %s" % ((time.perf_counter() - start_time)))
+    if list(dataset.as_numpy_iterator())[-1][1] != 0:
+        data_puller_logger.warning("Potential error in dataset at last data entity")
 
-    print(list(dataset.as_numpy_iterator())[-1])
+    data_puller_logger.info("Finished datahandling!")
+    data_puller_logger.debug("Datahandling took: %s" % ((time.perf_counter() - start_time)))
 
     return dataset
 

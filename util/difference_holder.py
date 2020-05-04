@@ -1,6 +1,6 @@
 class DifferenceHolder:
 
-    def __init__(self, threshold):
+    def __init__(self, threshold, logger, loud=False):
         self.total_difference = 0
         self.max_difference = 0
         self.min_difference = 0
@@ -16,6 +16,9 @@ class DifferenceHolder:
         self.real_total_mean_difference = 0
 
         self.calculations = 0
+
+        self.logger = logger
+        self.loud = loud
 
     def difference_calc(self, single_prediction, true_value, dataset):
 
@@ -38,7 +41,7 @@ class DifferenceHolder:
         if real_pred_difference < self.real_min_difference:
             self.real_min_difference = real_pred_difference
 
-        if pred_difference > self.threshold:
+        if pred_difference > self.threshold and self.loud:
             self.over_theshold_count += 1
 
             print("\n{:=^50}".format(" OVER TRESHOLD! "))
@@ -78,17 +81,20 @@ class DifferenceHolder:
 
 
 
-def PrintFinal(DifferenceHolder):
-    print("\n========== Finished {} predictions! ==========".format(DifferenceHolder.calculations))
-    print("{:22} {:.3f}".format("Total Loss:", DifferenceHolder.total_difference))
-    print("{:22} {:.3f}".format("Total Mean Loss:", DifferenceHolder.total_mean_difference))
-    print("{:22} {:.3f}".format("Maximum Loss:", DifferenceHolder.max_difference))
-    print("{:22} {:.3f}".format("Minimum Loss:", DifferenceHolder.min_difference))
-    print()
-    print("{:22} {}".format("Real Total Loss:", DifferenceHolder.real_total_difference))
-    print("{:22} {:.3f}".format("Real Total Mean Loss:", DifferenceHolder.real_total_mean_difference))
-    print("{:22} {}".format("Real Maximum Loss:", DifferenceHolder.real_max_difference))
-    print("{:22} {}".format("Real Minimum Loss:", DifferenceHolder.real_min_difference))
-    print()
-    print("{:22} {}".format("Threshold:", DifferenceHolder.threshold))
-    print("{:22} {}".format("Total over threshold:", DifferenceHolder.over_theshold_count))
+    def PrintFinal(self):
+        if self.loud:
+            print("\n========== Finished {} predictions! ==========".format(self.calculations))
+            print("{:22} {:.3f}".format("Total Loss:", self.total_difference))
+            print("{:22} {:.3f}".format("Total Mean Loss:", self.total_mean_difference))
+            print("{:22} {:.3f}".format("Maximum Loss:", self.max_difference))
+            print("{:22} {:.3f}".format("Minimum Loss:", self.min_difference))
+            print()
+            print("{:22} {}".format("Real Total Loss:", self.real_total_difference))
+            print("{:22} {:.3f}".format("Real Total Mean Loss:", self.real_total_mean_difference))
+            print("{:22} {}".format("Real Maximum Loss:", self.real_max_difference))
+            print("{:22} {}".format("Real Minimum Loss:", self.real_min_difference))
+            print()
+            print("{:22} {}".format("Threshold:", self.threshold))
+            print("{:22} {}".format("Total over threshold:", self.over_theshold_count))
+        
+        self.logger.debug(f"Predictions: {self.calculations}, MAE: {self.total_mean_difference}, Min: {self.min_difference}, Max: {self.max_difference}, Over treshold: {self.threshold}")
