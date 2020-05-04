@@ -1,7 +1,9 @@
-path=/home/$(whoami)/container-data/
+path=$(pwd)/container-data/
 path_logs=$path/logs/
-path_models=$(pwd)/models/
+path_models=$path/models/
 path_code=$(pwd)/trainer/
+path_util=$(pwd)/util/
+
 mkdir -p $path_logs
 mkdir -p $path_models
 
@@ -10,8 +12,10 @@ if [ "$(docker images -q maintrend-trainer:latest)" == "" ]; then
 fi
 
 docker run -it --rm --gpus all \
--v $path_code:/app/trainer \
--v $path_logs:/logs -v $path_models:/models \
+-v $path_code:/app/trainer/ \
+-v $path_util:/app/trainer/util/ \
+-v $path_logs:/logs \
+-v $path_models:/models \
 -e API_BASE_URL=$API_BASE_URL \
 -e API_CHANNEL=$API_CHANNEL \
 -e API_F=$API_F \

@@ -42,7 +42,7 @@ _patience = 60
 _batch_size = 16
 _buffer_size = 10000
 
-_max_epochs = 20
+_max_epochs = 1000
 _back_in_time = 60 # Days
 _step = 1 # Days to offset next dataset
 _target_size = 1 # How many to predict

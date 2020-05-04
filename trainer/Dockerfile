@@ -21,8 +21,8 @@ ADD trainer/requirements.txt .
 RUN python -m pip install -r requirements.txt
 
 WORKDIR /app
-ADD trainer .
-ADD util util
+#ADD trainer trainer
+#ADD util util
 
 # During debugging, this entry point will be overridden. For more information, refer to https://aka.ms/vscode-docker-python-debug
-CMD ["python", "main.py"]
+CMD ["python", "trainer/main.py"]
