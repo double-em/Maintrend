@@ -40,7 +40,7 @@ def apicall(viewid, req_url, payload, apikey, start, end):
         else:
             req_url += "&%s=%s" % (key, queryDictionary[key])
 
-    data_puller.debug("\nRequesting:", req_url)
+    data_puller.debug("\nRequesting: %s" % req_url)
     req = requests.post(req_url, json=payload)
 
     return req.json()['channel']['feeds'][0]['points'], req.elapsed.total_seconds()
