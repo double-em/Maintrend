@@ -31,7 +31,7 @@ from tensorboard.plugins.hparams import api as hp
 
 
 
-model_name = "test"
+model_name = "pre_test"
 log_dir = "logs"
 model_dir = "models"
 
@@ -40,7 +40,7 @@ _patience = 60
 _batch_size = 16
 _buffer_size = 10000
 
-_max_epochs = 20
+_max_epochs = 1000
 _back_in_time = 60 # Days
 _step = 1 # Days to offset next dataset
 _target_size = 1 # How many to predict
@@ -163,7 +163,7 @@ def model_builder(name, hparams):
 def test_model(model):
     
     treshold = 3
-    differ = dh.DifferenceHolder(treshold, trainer_logger)
+    differ = dh.DifferenceHolder(treshold, trainer_logger, True)
 
     trainer_logger.debug(f"Testing model with {treshold} day(s) treshold...")
     predictions = model.predict(test_dataset)
