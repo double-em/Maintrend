@@ -23,7 +23,7 @@ from tensorflow.keras.models import load_model
 import flask
 from flask import request, jsonify
 
-# Action test 
+# Action test comment
 # app = flask.Flask('DatahandlerAPI')
 app = flask.Flask(__name__)
 app.config['DEBUG'] = True
