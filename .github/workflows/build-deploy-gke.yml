@@ -1,4 +1,4 @@
-name: Build and Deploy to GKE
+name: Serving API Build and Publish to GKE
 
 on:
   push:
