@@ -1,6 +1,6 @@
 # Maintrend
 ![Predictor build](https://github.com/Zxited/TrendlogDataApp/workflows/Predictor%20build/badge.svg?branch=master)
-![Uptime Robot status](https://img.shields.io/uptimerobot/status/m784877523-f6f734476f8372981b07a620?label=Serving%20API)
+![Uptime Robot status](https://img.shields.io/uptimerobot/status/m784890546-9e5b8bbd9d46ed990eac5635?label=Serving%20API)
 
 Maintrend is a maintenance date predictor developed as a school project for my Computer Science AP.
 
