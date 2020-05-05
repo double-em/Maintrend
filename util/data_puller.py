@@ -137,7 +137,8 @@ def apicallv3(history_size, req_url, apikey, start, end):
     if df.isna().sum().sum() > 0:
         data_puller_logger.warning(f"Data contains {df.isna().sum().sum()} NaN values after midnight fill")
 
-    # TODO: Sometimes predicts backwards.
+    # TODO: Sometimes predicts backwards
+    # Calculate days to next maintenance
     def last_main(dataset):
         dataset = dataset[::-1]
         first_main = True

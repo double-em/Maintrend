@@ -1,0 +1,17 @@
+version: '3.4'
+
+services:
+
+  datahandlerapi:
+    image: datahandlerapi:latest
+    build:
+      context: DatahandlerAPI
+      dockerfile: Dockerfile
+
+  predictor:
+    image: predictor:latest
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    build:
+      context: Predictor
+      dockerfile: Dockerfile
