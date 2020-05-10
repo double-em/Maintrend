@@ -47,7 +47,7 @@ def apicall(viewid, req_url, payload, apikey, start, end):
 
 
 
-def apicallv3(history_size, req_url, apikey, start, end):
+def data_getter(req_url, apikey, start, end):
 
     # Times down call
     viewid = "670"
@@ -61,10 +61,13 @@ def apicallv3(history_size, req_url, apikey, start, end):
     jsonResponseP, elapsed = apicall(viewid, req_url, payload, apikey,  start, end)
     data_puller_logger.debug("Production amount API call got: %s points, call took: %s seconds" % (len(jsonResponseP), elapsed))
 
-    data_puller_logger.info("Starting datahandling...")
-    start_time =  time.perf_counter()
+    return jsonResponseD, jsonResponseP
 
-    df = pd.DataFrame.from_dict(jsonResponseD)
+
+
+def down_time_transformer(json_data):
+
+    df = pd.DataFrame.from_dict(json_data)
     df = df.drop('pointid', axis=1)
     df['timestamp'] = pd.to_datetime(df['timestamp'])
     df['value'] = pd.to_numeric(df['value'])
@@ -102,9 +105,13 @@ def apicallv3(history_size, req_url, apikey, start, end):
     if df.isna().sum().sum() > 0:
         data_puller_logger.warning(f"Data contains {df.isna().sum().sum()} NaN values after comment handling")
 
-    dfComments = df.pop('comment')
+    return df
 
-    dfP = pd.DataFrame.from_dict(jsonResponseP)
+
+
+def product_produced_transformer(json_data):
+
+    dfP = pd.DataFrame.from_dict(json_data)
     dfP = dfP.drop('pointid', axis=1)
     dfP['timestamp'] = pd.to_datetime(dfP['timestamp'])
     dfP['value'] = pd.to_numeric(dfP['value'])
@@ -121,6 +128,54 @@ def apicallv3(history_size, req_url, apikey, start, end):
     dfP = dfP.set_index('timestamp')
     dfP = dfP.resample('D').sum()
 
+    return dfP
+
+
+
+# Calculate days to next maintenance
+def last_main(dataset):
+    dataset = dataset[::-1]
+    first_main = True
+    last_m = 0
+    remove = []
+    for i in range(len(dataset)):
+
+        if first_main:
+            if dataset[i][4] == 1:
+                first_main = False
+                last_m = dataset[i][0]
+                dataset[i][0] = 0
+            else:
+                remove.append(i)
+
+        else:
+            if dataset[i][4] == 1:
+                last_m = dataset[i][0]
+                dataset[i][0] = 0
+            else:
+                dataset[i][0] = int((((last_m - dataset[i][0])/60)/60)/24)
+        
+        i += 1
+
+    dataset = np.delete(dataset, remove, axis=0)
+
+    return dataset[::-1]
+
+
+
+def apicallv3(history_size, req_url, apikey, start, end, predictor_call=False):
+
+    jsonResponseD, jsonResponseP = data_getter(req_url, apikey, start, end)
+    
+    data_puller_logger.info("Starting datahandling...")
+    start_time =  time.perf_counter()
+
+    df = down_time_transformer(jsonResponseD)
+    
+    dfComments = df.pop('comment')
+
+    dfP = product_produced_transformer(jsonResponseP)
+
     dfP = dfP.reset_index()
     df = df.reset_index()
 
@@ -136,48 +191,18 @@ def apicallv3(history_size, req_url, apikey, start, end):
 
     if df.isna().sum().sum() > 0:
         data_puller_logger.warning(f"Data contains {df.isna().sum().sum()} NaN values after midnight fill")
-
-    # TODO: Sometimes predicts backwards
-    # Calculate days to next maintenance
-    def last_main(dataset):
-        dataset = dataset[::-1]
-        first_main = True
-        last_m = 0
-        remove = []
-        for i in range(len(dataset)):
-
-            if first_main:
-                if dataset[i][4] == 1:
-                    first_main = False
-                    last_m = dataset[i][0]
-                    dataset[i][0] = 0
-                else:
-                    remove.append(i)
-
-            else:
-                if dataset[i][4] == 1:
-                    last_m = dataset[i][0]
-                    dataset[i][0] = 0
-                else:
-                    dataset[i][0] = int((((last_m - dataset[i][0])/60)/60)/24)
-            
-            i += 1
-
-        dataset = np.delete(dataset, remove, axis=0)
-
-        return dataset[::-1]
     
     data_arr = df.values
 
     # Remove the first days where they havent logged much maintenance
     # NOTE: Helped alot!
-    first_index = 0
-    for i in range(len(data_arr)):
-        if data_arr[i][4] == 1:
-            break
-        first_index += 1
-
-    newdata = last_main(data_arr[first_index:])
+    if not predictor_call:
+        first_index = 0
+        for i in range(len(data_arr)):
+            if data_arr[i][4] == 1:
+                break
+            first_index += 1
+        newdata = last_main(data_arr[first_index:])
 
     newdata[:,1:-1] = scaler.fit_transform(newdata[:,1:-1])
 
