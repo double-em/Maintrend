@@ -22,4 +22,4 @@ ADD serving-api .
 ADD util util
 
 # During debugging, this entry point will be overridden. For more information, refer to https://aka.ms/vscode-docker-python-debug
-CMD ["python", "main.py"]
+CMD ["python", "main_v2.py"]

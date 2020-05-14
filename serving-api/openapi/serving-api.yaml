@@ -1,0 +1,17 @@
+openapi: 3.0.0
+
+info:
+  title: Serving API
+  version: 1.0.0
+
+servers:
+  url: /v1
+  description: First release of the Serving API talking with the Predictor.
+
+paths:
+  /hello-world:
+    get:
+      operationId: api.hello_world
+      responses:
+        '200':
+          description: Hello world test

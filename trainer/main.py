@@ -31,7 +31,7 @@ from tensorboard.plugins.hparams import api as hp
 
 
 
-model_name = "pre_test"
+model_name = "test_datapull"
 log_dir = "logs"
 model_dir = "models"
 

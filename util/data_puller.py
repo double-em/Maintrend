@@ -65,7 +65,7 @@ def data_getter(req_url, apikey, start, end):
 
 
 
-def down_time_transformer(json_data):
+def down_time_transformer(json_data, raw_data=False):
 
     df = pd.DataFrame.from_dict(json_data)
     df = df.drop('pointid', axis=1)
@@ -109,7 +109,7 @@ def down_time_transformer(json_data):
 
 
 
-def product_produced_transformer(json_data):
+def product_produced_transformer(json_data, raw_data=False):
 
     dfP = pd.DataFrame.from_dict(json_data)
     dfP = dfP.drop('pointid', axis=1)
@@ -163,18 +163,18 @@ def last_main(dataset):
 
 
 
-def apicallv3(history_size, req_url, apikey, start, end, predictor_call=False):
+def apicallv3(history_size, req_url, apikey, start, end, predictor_call=False, raw_data=False):
 
     jsonResponseD, jsonResponseP = data_getter(req_url, apikey, start, end)
     
     data_puller_logger.info("Starting datahandling...")
     start_time =  time.perf_counter()
 
-    df = down_time_transformer(jsonResponseD)
+    df = down_time_transformer(jsonResponseD, raw_data)
     
     dfComments = df.pop('comment')
 
-    dfP = product_produced_transformer(jsonResponseP)
+    dfP = product_produced_transformer(jsonResponseP, raw_data)
 
     dfP = dfP.reset_index()
     df = df.reset_index()
@@ -203,24 +203,30 @@ def apicallv3(history_size, req_url, apikey, start, end, predictor_call=False):
                 break
             first_index += 1
         newdata = last_main(data_arr[first_index:])
+    else:
+        newdata = data_arr
 
-    newdata[:,1:-1] = scaler.fit_transform(newdata[:,1:-1])
+    if not raw_data:
+        newdata[:,1:-1] = scaler.fit_transform(newdata[:,1:-1])
 
     data_puller_logger.info("Correcting datatypes...")
-    tmp_df = pd.DataFrame(newdata).astype({0:'int32', 1:'float32', 2:'float32', 3:'float32', 4:'int32'})
+    df = pd.DataFrame(newdata, columns=df.columns)#.astype({0:'int32', 1:'float32', 2:'float32', 3:'float32', 4:'int32'})
+    df = df.rename(columns={'timestamp':'days_to_maintenance', 'comment':'maintenance'})
+    dataset = df
 
-    if tmp_df.isna().sum().sum() > 0:
-        data_puller_logger.warning(f"Final dataset contains {tmp_df.isna().sum().sum()} NaN values")
+    if dataset.isna().sum().sum() > 0:
+        data_puller_logger.warning(f"Final dataset contains {dataset.isna().sum().sum()} NaN values")
+
+    if not raw_data: 
+        dataset = tf.data.Dataset.from_tensor_slices(dataset.values)
         
-    dataset = tf.data.Dataset.from_tensor_slices(tmp_df.values)
-    
-    dataset = dataset.map(lambda row: tf.cast(row, 'float32'))
-    dataset = dataset.window(history_size, shift=1, drop_remainder=True)
-    dataset = dataset.flat_map(lambda window: window.batch(history_size))
-    dataset = dataset.map(lambda window: (window[:,1:], window[-1,0]))
+        dataset = dataset.map(lambda row: tf.cast(row, 'float32'))
+        dataset = dataset.window(history_size, shift=1, drop_remainder=True)
+        dataset = dataset.flat_map(lambda window: window.batch(history_size))
+        dataset = dataset.map(lambda window: (window[:,1:], window[-1,0]))
 
-    if list(dataset.as_numpy_iterator())[-1][1] != 0:
-        data_puller_logger.warning("Potential error in dataset at last data entity")
+        if list(dataset.as_numpy_iterator())[-1][1] != 0:
+            data_puller_logger.warning("Potential error in dataset at last data entity")
 
     data_puller_logger.info("Finished datahandling!")
     data_puller_logger.debug("Datahandling took: %s" % ((time.perf_counter() - start_time)))
