@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import os
 import sys
+import time
 import datetime
 import requests
 import json
@@ -31,7 +32,7 @@ from tensorboard.plugins.hparams import api as hp
 
 
 
-model_name = "test_datapull"
+model_name = "test_model"
 log_dir = "logs"
 model_dir = "models"
 
@@ -219,7 +220,10 @@ for output_units in hp_output_units.domain.values:
             trainer_logger.debug(f"Using Hyperparameters: {hparams[h] for h in hparams}")
 
             model_tmp = model_builder(model_name, hparams)
+
+            start_time =  time.perf_counter()
             compile_and_fit(model_tmp, model_tmp.name, hparams, session_version, hparams[hp_optimizer])
+            trainer_logger.debug(f"Training took: {(time.perf_counter() - start_time)}")
 
             if test_mode:
                 test_model(model_tmp)
