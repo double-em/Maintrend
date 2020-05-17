@@ -2,7 +2,7 @@ import datetime
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-app = FastAPI(title="Pedictor API", description="Serving version of the Predictor API.", version="1.2.1")
+app = FastAPI(title="Serving API", description="Serving version of the Predictor API.", version="1.2.1")
 class PredictionResult(BaseModel):
     date: datetime.date = None
     prediction_available: bool
@@ -14,7 +14,7 @@ class PredictionRequest(BaseModel):
 
 class APIStatus(BaseModel):
     request_received: datetime.datetime = datetime.datetime.now()
-    internal_api_status: str = "Down"
+    predictor_up_status: bool = False
     messsage: str = "You've hit the API! Autch..."
 
 @app.get("/", response_model=APIStatus)
