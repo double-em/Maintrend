@@ -1,67 +1,63 @@
-import numpy as np
-import pandas as pd
-import os
-import sys
 import datetime
+import logging
 import requests
 import json
-import logging
+import os
+import numpy as np
 import util.data_puller as api
-import util.difference_holder as dh
 from json import JSONEncoder
+from fastapi import FastAPI
+from pydantic import BaseModel
 
 serving_logger = logging.getLogger('serving-api')
 logging.basicConfig(format="%(asctime)s: %(levelname)s: %(name)s: %(message)s")
 serving_logger.setLevel(logging.DEBUG)
 
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras.layers import Dense, LSTM, Dropout
-from tensorflow.keras import Sequential
-from tensorflow.keras.models import load_model
-
-import flask
-from flask import request, jsonify
-
-app = flask.Flask(__name__)
-app.config['DEBUG'] = True
+app = FastAPI(title="Serving API", description="Serving version of the Predictor API.", version="1.2.1")
 
 history_size = 60
 
-@app.route('/')
-def hello_api():
-    return "You've hit the API! Autch..."
+class PredictionResult(BaseModel):
+    date: str = None
+    prediction_available: bool
 
-@app.route('/v1/predict', methods=['GET'])
-def api_predict():
+class PredictionRequest(BaseModel):
+    api_key: str
+    channel_id: int
+    prediction_date: datetime.date
 
-    serving_logger.debug("Got API call for Predictor!")
+class APIStatus(BaseModel):
+    request_received: datetime.datetime = datetime.datetime.now()
+    predictor_up_status: bool = False
+    messsage: str = "You've hit the API! Autch..."
 
-    if 'apikey' in request.args and 'channel_id' in request.args and 'to' in request.args:
-        try:
-            apikey = request.args['apikey']
-            channel_id = int(request.args['channel_id'])
-            datetime_to = datetime.datetime.strptime(request.args['to'], "%Y-%m-%d %H:%M:%S")
+@app.get("/", response_model=APIStatus)
+async def root():
+    return APIStatus()
 
-            # NOTE: Take the day before to ensure only completed days
-            datetime_to = datetime_to - datetime.timedelta(1)
-            datetime_from = datetime_to - datetime.timedelta(history_size)
-        except:
-            return "Not allowed."
+@app.post("/predict", response_model=PredictionResult)
+async def predict(prediction_request : PredictionRequest):
 
-    else:
-        return "Missing parameters."
+    serving_logger.debug(f"Got API call for Predictor!")
+
+    apikey = prediction_request.api_key
+    channel_id = prediction_request.channel_id
+    datetime_to = datetime.datetime.strptime(f"{prediction_request.prediction_date} 23:59:59", "%Y-%m-%d %H:%M:%S")
+
+    # NOTE: Take the day before to ensure only completed days
+    datetime_to = datetime_to - datetime.timedelta(1)
+
+    # NOTE: Add 1 second to get the start of the next day so it matches history_size.
+    datetime_from = (datetime_to - datetime.timedelta(history_size)) + datetime.timedelta(seconds=1)
 
     req_url = os.environ['API_BASE_URL'] + '/' + str(channel_id) + '/' + os.environ['API_F']
 
-    train = api.apicallv3(history_size, req_url, apikey, datetime_to.strftime("%Y-%m-%d %H:%M:%S"), datetime_from.strftime("%Y-%m-%d %H:%M:%S"))
+    try:
+        train = api.apicallv3(history_size, req_url, apikey, datetime_to.strftime("%Y-%m-%d %H:%M:%S"), datetime_from.strftime("%Y-%m-%d %H:%M:%S"))
+    except:
+        return PredictionResult(prediction_available=False)
 
     X = list(train.as_numpy_iterator())
-
-    pred_amount = len(X)
-    threshold = 3
-
-    differ = dh.DifferenceHolder(threshold, serving_logger)
 
     class NumpyArrayEncoder(JSONEncoder):
         def default(self, obj):
@@ -69,24 +65,14 @@ def api_predict():
                 return obj.tolist()
             return JSONEncoder.default(self, obj)
 
-    for i in range(pred_amount):
+    tcx = [[]]
+    tcx[0] = X[0][0]
 
-        tcx = [[]]
-        tcx[0] = X[i][0]
+    data = json.dumps({"signature_name":"serving_default", "instances":tcx}, cls=NumpyArrayEncoder)
+    headers = {"content-type":"application/json"}
+    json_response = requests.post("http://predictor-service:8501/v1/models/predictor:predict", data=data, headers=headers)
+    predictions = json.loads(json_response.text)['predictions']
 
-        data = json.dumps({"signature_name":"serving_default", "instances":tcx}, cls=NumpyArrayEncoder)
-        headers = {"content-type":"application/json"}
-        json_response = requests.post("http://predictor-service:8501/v1/models/predictor:predict", data=data, headers=headers)
-        predictions = json.loads(json_response.text)['predictions']
+    single_prediction = predictions[0][0]
 
-        true_value = X[i][1]
-
-        single_prediction = predictions[0][0]
-
-        differ.difference_calc(single_prediction, true_value, tcx[0])
-
-        i += 1
-
-    return json.dumps(predictions)
-
-app.run(host='0.0.0.0', port=5000)
+    return PredictionResult(date=single_prediction,prediction_available=True)
