@@ -48,8 +48,8 @@ async def root():
             model_error_code=mvs['status']['error_code'],
             model_error_message=mvs['status']['error_message']
         )
-    except Exception as e:
-        serving_logger.error(e)
+    except Exception as ex:
+        serving_logger.error(ex)
         apistatus = APIStatus(
             model_state="UNAVAILABLE",
             model_error_code="404",
@@ -76,8 +76,9 @@ async def predict(prediction_request : PredictionRequest):
     req_url = os.environ['API_BASE_URL'] + '/' + str(channel_id) + '/' + os.environ['API_F']
 
     try:
-        train = api.apicallv3(history_size, req_url, apikey, datetime_to.strftime("%Y-%m-%d %H:%M:%S"), datetime_from.strftime("%Y-%m-%d %H:%M:%S"), predictor_call=True)
-    except:
+        train = api.apicallv3(req_url, apikey, datetime_to.strftime("%Y-%m-%d %H:%M:%S"), datetime_from.strftime("%Y-%m-%d %H:%M:%S"), predictor_call=True)
+    except Exception as ex:
+        serving_logger.error(ex)
         return PredictionResult(prediction_available=False)
 
     X = list(train.as_numpy_iterator())

@@ -7,13 +7,11 @@ import requests
 import json
 import time
 import logging
+from sklearn.preprocessing import MinMaxScaler
 
 data_puller_logger = logging.getLogger('data-puller')
 logging.basicConfig(format="%(asctime)s: %(levelname)s: %(name)s: %(message)s")
 data_puller_logger.setLevel(logging.DEBUG)
-
-from sklearn.preprocessing import MinMaxScaler
-import tensorflow as tf
 
 def apicall(viewid, req_url, payload, apikey, start, end):
     dst = "true"
@@ -163,7 +161,7 @@ def last_main(dataset):
 
 
 
-def apicallv3(history_size, req_url, apikey, start, end, predictor_call=False, raw_data=False):
+def apicallv3(req_url, apikey, start, end, predictor_call=False, raw_data=False):
 
     jsonResponseD, jsonResponseP = data_getter(req_url, apikey, start, end)
     
@@ -212,26 +210,14 @@ def apicallv3(history_size, req_url, apikey, start, end, predictor_call=False, r
     data_puller_logger.info("Correcting datatypes...")
     df = pd.DataFrame(newdata, columns=df.columns)#.astype({0:'int32', 1:'float32', 2:'float32', 3:'float32', 4:'int32'})
     df = df.rename(columns={'timestamp':'days_to_maintenance', 'comment':'maintenance'})
-    dataset = df
 
-    if dataset.isna().sum().sum() > 0:
-        data_puller_logger.warning(f"Final dataset contains {dataset.isna().sum().sum()} NaN values")
-
-    if not raw_data: 
-        dataset = tf.data.Dataset.from_tensor_slices(dataset.values)
-        
-        dataset = dataset.map(lambda row: tf.cast(row, 'float32'))
-        dataset = dataset.window(history_size, shift=1, drop_remainder=True)
-        dataset = dataset.flat_map(lambda window: window.batch(history_size))
-        dataset = dataset.map(lambda window: (window[:,1:], window[-1,0]))
-
-        if list(dataset.as_numpy_iterator())[-1][1] != 0:
-            data_puller_logger.warning("Potential error in dataset at last data entity")
+    if df.isna().sum().sum() > 0:
+        data_puller_logger.warning(f"Final dataset contains {df.isna().sum().sum()} NaN values")
 
     data_puller_logger.info("Finished datahandling!")
     data_puller_logger.debug("Datahandling took: %s" % ((time.perf_counter() - start_time)))
 
-    return dataset
+    return df
 
 # Links
 # https://classroom.udacity.com/courses/ud187/lessons/6d543d5c-6b18-4ecf-9f0f-3fd034acd2cc/concepts/0d390920-2ece-46ac-adea-25f4f54265f7

@@ -42,7 +42,7 @@ _batch_size = 16
 _buffer_size = 10000
 
 _max_epochs = 1000
-_back_in_time = 60 # Days
+history_size = 60 # Days
 _step = 1 # Days to offset next dataset
 _target_size = 1 # How many to predict
 
@@ -83,8 +83,18 @@ print()
 trainer_logger.debug(f"Visible Devices: {tf.config.get_visible_devices()}")
 
 # train_old = api.pulldata2()
-train = api.apicallv3(_back_in_time, base_url, apikey, "2099-01-31 00:00:00", "2000-01-31 00:00:00")
-trian_length = len(list(train.as_numpy_iterator()))
+train = api.apicallv3(base_url, apikey, "2099-01-31 00:00:00", "2000-01-31 00:00:00")
+
+dataset = tf.data.Dataset.from_tensor_slices(train.values)
+dataset = dataset.map(lambda row: tf.cast(row, 'float32'))
+dataset = dataset.window(history_size, shift=1, drop_remainder=True)
+dataset = dataset.flat_map(lambda window: window.batch(history_size))
+dataset = dataset.map(lambda window: (window[:,1:], window[-1,0]))
+
+if list(dataset.as_numpy_iterator())[-1][1] != 0:
+    trainer_logger.warning("Potential error in dataset at last data entity")
+
+trian_length = len(list(dataset.as_numpy_iterator()))
 train_size = int(0.8 * trian_length)
 val_size = int(0.1 * trian_length)
 test_size = int(0.1 * trian_length)

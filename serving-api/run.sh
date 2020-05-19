@@ -1,6 +1,3 @@
-path_code=$(pwd)/serving-api/
-path_util=$(pwd)/util/
-
 if [ "$(docker images -q serving-api:latest)" == "" ]; then
     docker build -t serving-api:latest -f serving-api/Dockerfile .
 fi
