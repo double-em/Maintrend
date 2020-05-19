@@ -99,7 +99,7 @@ train_size = int(0.8 * trian_length)
 val_size = int(0.1 * trian_length)
 test_size = int(0.1 * trian_length)
 
-full_dataset = train.shuffle(trian_length, seed=42)
+full_dataset = dataset.shuffle(trian_length, seed=42)
 test_dataset = full_dataset.skip(train_size)
 
 train_dataset = full_dataset.take(train_size).batch(_batch_size, drop_remainder=True).cache().prefetch(train_size)
