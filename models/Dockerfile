@@ -2,5 +2,5 @@ FROM tensorflow/serving
 
 ENV MODEL_NAME predictor
 
-WORKDIR /models
-ADD . /
+#WORKDIR /models
+ADD . /models

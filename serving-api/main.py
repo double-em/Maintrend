@@ -3,6 +3,7 @@ import logging
 import requests
 import json
 import os
+import sys
 import numpy as np
 import util.data_puller as api
 from json import JSONEncoder
@@ -28,12 +29,34 @@ class PredictionRequest(BaseModel):
 
 class APIStatus(BaseModel):
     request_received: datetime.datetime = datetime.datetime.now()
-    predictor_up_status: bool = False
     messsage: str = "You've hit the API! Autch..."
+    model_version: int = None
+    model_state: str
+    model_error_code: str
+    model_error_message: str
+
+
 
 @app.get("/", response_model=APIStatus)
 async def root():
-    return APIStatus()
+    try:
+        json_response = requests.get("http://172.18.0.1:8501/v1/models/predictor")
+        mvs = json.loads(json_response.text)['model_version_status'][0]
+        apistatus = APIStatus(
+            model_version=mvs['version'],
+            model_state=mvs['state'],
+            model_error_code=mvs['status']['error_code'],
+            model_error_message=mvs['status']['error_message']
+        )
+    except Exception as e:
+        serving_logger.error(e)
+        apistatus = APIStatus(
+            model_state="UNAVAILABLE",
+            model_error_code="404",
+            model_error_message="Not found. Check log for details."
+        )
+
+    return apistatus
 
 @app.post("/predict", response_model=PredictionResult)
 async def predict(prediction_request : PredictionRequest):
@@ -70,7 +93,7 @@ async def predict(prediction_request : PredictionRequest):
 
     data = json.dumps({"signature_name":"serving_default", "instances":tcx}, cls=NumpyArrayEncoder)
     headers = {"content-type":"application/json"}
-    json_response = requests.post("http://predictor-service:8501/v1/models/predictor:predict", data=data, headers=headers)
+    json_response = requests.post("http://172.18.0.1:8501/v1/models/predictor:predict", data=data, headers=headers)
     predictions = json.loads(json_response.text)['predictions']
 
     single_prediction = predictions[0][0]
