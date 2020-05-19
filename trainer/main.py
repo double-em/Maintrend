@@ -32,7 +32,7 @@ from tensorboard.plugins.hparams import api as hp
 
 
 
-model_name = "test_model"
+model_name = "new_prod"
 log_dir = "logs"
 model_dir = "models"
 

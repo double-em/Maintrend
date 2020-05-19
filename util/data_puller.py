@@ -208,13 +208,17 @@ def apicallv3(req_url, apikey, start, end, predictor_call=False, raw_data=False)
         newdata[:,1:-1] = scaler.fit_transform(newdata[:,1:-1])
 
     data_puller_logger.info("Correcting datatypes...")
-    df = pd.DataFrame(newdata, columns=df.columns)#.astype({0:'int32', 1:'float32', 2:'float32', 3:'float32', 4:'int32'})
-    df = df.rename(columns={'timestamp':'days_to_maintenance', 'comment':'maintenance'})
+    if predictor_call:
+        df = pd.DataFrame(newdata).drop(columns=[0])
+    else:
+        df = pd.DataFrame(newdata, columns=df.columns)#.astype({0:'int32', 1:'float32', 2:'float32', 3:'float32', 4:'int32'})
+        df = df.rename(columns={'timestamp':'days_to_maintenance', 'comment':'maintenance'})
 
     if df.isna().sum().sum() > 0:
         data_puller_logger.warning(f"Final dataset contains {df.isna().sum().sum()} NaN values")
 
     data_puller_logger.info("Finished datahandling!")
+    data_puller_logger.debug(f"Got a total of {len(df.values)} rows")
     data_puller_logger.debug("Datahandling took: %s" % ((time.perf_counter() - start_time)))
 
     return df

@@ -1,0 +1,19 @@
+version: '3.4'
+
+services:
+  predictor-service:
+    image: predictor
+    build:
+      context: .
+      dockerfile: models/Dockerfile
+  serving-api:
+    depends_on: [predictor-service]
+    image: serving-api
+    environment:
+      - API_BASE_URL
+      - API_F
+    build:
+      context: .
+      dockerfile: serving-api/Dockerfile
+    ports:
+      - 80:80

@@ -7,4 +7,5 @@ docker run -it --rm --gpus all \
 -e API_F=$API_F \
 --name serving-api \
 --network maintrend-net \
+-p 80:80 \
 serving-api:latest

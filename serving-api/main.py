@@ -19,7 +19,7 @@ app = FastAPI(title="Serving API", description="Serving version of the Predictor
 history_size = 60
 
 class PredictionResult(BaseModel):
-    date: str = None
+    date: datetime.date = None
     prediction_available: bool
 
 class PredictionRequest(BaseModel):
@@ -40,7 +40,7 @@ class APIStatus(BaseModel):
 @app.get("/", response_model=APIStatus)
 async def root():
     try:
-        json_response = requests.get("http://172.18.0.1:8501/v1/models/predictor")
+        json_response = requests.get("http://predictor-service:8501/v1/models/predictor")
         mvs = json.loads(json_response.text)['model_version_status'][0]
         apistatus = APIStatus(
             model_version=mvs['version'],
@@ -81,8 +81,6 @@ async def predict(prediction_request : PredictionRequest):
         serving_logger.error(ex)
         return PredictionResult(prediction_available=False)
 
-    X = list(train.as_numpy_iterator())
-
     class NumpyArrayEncoder(JSONEncoder):
         def default(self, obj):
             if isinstance(obj, np.ndarray):
@@ -90,13 +88,22 @@ async def predict(prediction_request : PredictionRequest):
             return JSONEncoder.default(self, obj)
 
     tcx = [[]]
-    tcx[0] = X[0][0]
+    tcx[0] = train.values
 
     data = json.dumps({"signature_name":"serving_default", "instances":tcx}, cls=NumpyArrayEncoder)
     headers = {"content-type":"application/json"}
-    json_response = requests.post("http://172.18.0.1:8501/v1/models/predictor:predict", data=data, headers=headers)
-    predictions = json.loads(json_response.text)['predictions']
 
-    single_prediction = predictions[0][0]
+    try:
+        json_response = requests.post("http://predictor-service:8501/v1/models/predictor:predict", data=data, headers=headers)
+        predictions = json.loads(json_response.text)['predictions']
+    except Exception as ex:
+        serving_logger.error(ex)
+        return PredictionResult(prediction_available=False)
 
-    return PredictionResult(date=single_prediction,prediction_available=True)
+
+    single_prediction = round(float(predictions[0][0]))
+
+    prediction_date = datetime_to + datetime.timedelta(single_prediction)
+    prediction_date = prediction_date.date()
+
+    return PredictionResult(date=prediction_date, prediction_available=True)
