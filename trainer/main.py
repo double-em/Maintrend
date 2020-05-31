@@ -1,38 +1,25 @@
-import numpy as np
-import pandas as pd
 import os
-import sys
 import time
-import datetime
-import requests
-import json
 import logging
-import importlib
-from pathlib import Path
-import util.data_puller as api
+from util.data_puller import apicallv3 as apicall
 import util.difference_holder as dh
-
-trainer_logger = logging.getLogger('trainer')
-logging.basicConfig(format="%(asctime)s: %(levelname)s: %(name)s: %(message)s")
-trainer_logger.setLevel(logging.DEBUG)
-
-base_url = os.environ['API_BASE_URL'] + '/' + os.environ['API_CHANNEL'] + '/' + os.environ['API_F']
-apikey = os.environ['API_KEY']
 
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.layers import Dense, LSTM, Dropout
 from tensorflow.keras import Sequential
 from tensorflow.keras.callbacks import EarlyStopping, TensorBoard
-from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MinMaxScaler
-from tensorflow.python import debug as tf_debug
 from tensorboard.plugins.hparams import api as hp
 
+trainer_logger = logging.getLogger('trainer')
 
+if __name__ == "__main__":
+    logging.basicConfig(format="%(asctime)s: %(levelname)s: %(name)s: %(message)s", level=logging.DEBUG)
 
-model_name = "new_prod"
+base_url = os.environ['API_BASE_URL'] + '/' + os.environ['API_CHANNEL'] + '/' + os.environ['API_F']
+apikey = os.environ['API_KEY']
+
+model_name = "working_test"
 log_dir = "logs"
 model_dir = "models"
 
@@ -42,7 +29,7 @@ _batch_size = 16
 _buffer_size = 10000
 
 _max_epochs = 1000
-history_size = 60 # Days
+_history_size = 60 # Days
 _step = 1 # Days to offset next dataset
 _target_size = 1 # How many to predict
 
@@ -82,13 +69,12 @@ _loss = keras.losses.mean_absolute_error
 print()
 trainer_logger.debug(f"Visible Devices: {tf.config.get_visible_devices()}")
 
-# train_old = api.pulldata2()
-train = api.apicallv3(base_url, apikey, "2099-01-31 00:00:00", "2000-01-31 00:00:00")
+train = apicall(base_url, apikey, "2099-01-31 00:00:00", "2000-01-31 00:00:00")
 
 dataset = tf.data.Dataset.from_tensor_slices(train.values)
 dataset = dataset.map(lambda row: tf.cast(row, 'float32'))
-dataset = dataset.window(history_size, shift=1, drop_remainder=True)
-dataset = dataset.flat_map(lambda window: window.batch(history_size))
+dataset = dataset.window(_history_size, shift=1, drop_remainder=True)
+dataset = dataset.flat_map(lambda window: window.batch(_history_size))
 dataset = dataset.map(lambda window: (window[:,1:], window[-1,0]))
 
 if list(dataset.as_numpy_iterator())[-1][1] != 0:
@@ -180,7 +166,7 @@ def test_model(model):
     predictions = model.predict(test_dataset)
 
     # NOTE: Shape = (6, 2, 16, 60, 4)
-    # NOTE: Shape = (batches, (x and y), batch_size, history_size, parameters)
+    # NOTE: Shape = (batches, (x and y), batch_size, _history_size, parameters)
     dataset_list = list(test_dataset.as_numpy_iterator())
 
     x_s = []

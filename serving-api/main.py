@@ -3,9 +3,8 @@ import logging
 import requests
 import json
 import os
-import sys
 import numpy as np
-import util.data_puller as api
+from util.data_puller import apicallv3 as apicall
 from json import JSONEncoder
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -76,7 +75,7 @@ async def predict(prediction_request : PredictionRequest):
     req_url = os.environ['API_BASE_URL'] + '/' + str(channel_id) + '/' + os.environ['API_F']
 
     try:
-        train = api.apicallv3(req_url, apikey, datetime_to.strftime("%Y-%m-%d %H:%M:%S"), datetime_from.strftime("%Y-%m-%d %H:%M:%S"), predictor_call=True)
+        train = apicall(req_url, apikey, datetime_to.strftime("%Y-%m-%d %H:%M:%S"), datetime_from.strftime("%Y-%m-%d %H:%M:%S"), predictor_call=True)
     except Exception as ex:
         serving_logger.error(ex)
         return PredictionResult(prediction_available=False)
