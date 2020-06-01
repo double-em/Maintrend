@@ -1,0 +1,62 @@
+[
+    {
+        "pointid": "1",
+        "comment": "{'category':2,'comment':'Missing material'}",
+        "timestamp": "2020-01-01 06:01:14",
+        "value": "100"
+    },
+    {
+        "pointid": "2",
+        "comment": "{'category':1,'comment':'Planned repair'}",
+        "timestamp": "2020-01-01 07:02:16",
+        "value": "100"
+    },
+    {
+        "pointid": "3",
+        "comment": "{'comment':'1'}",
+        "timestamp": "2020-01-01 08:10:31",
+        "value": "100"
+    },
+    {
+        "pointid": "4",
+        "timestamp": "2020-01-01 09:18:00",
+        "value": "0"
+    },
+    {
+        "pointid": "5",
+        "timestamp": "2020-01-01 12:02:58",
+        "value": "100"
+    },
+    {
+        "pointid": "6",
+        "comment": "{'category':1,'comment':'Refill materials'}",
+        "timestamp": "2020-01-01 14:05:01",
+        "value": "100"
+    },
+    {
+        "pointid": "7",
+        "timestamp": "2020-01-01 16:36:36",
+        "value": "100"
+    },
+    {
+        "pointid": "8",
+        "timestamp": "2020-01-02 10:12:11",
+        "value": "0"
+    },
+    {
+        "pointid": "9",
+        "comment": "{'category':1,'comment':'Unplanned repair'}",
+        "timestamp": "2020-01-02 12:11:10",
+        "value": "100"
+    },
+    {
+        "pointid": "10",
+        "timestamp": "2020-01-02 18:56:49",
+        "value": "0"
+    },
+    {
+        "pointid": "11",
+        "timestamp": "2020-01-03 03:22:06",
+        "value": "0"
+    }
+]

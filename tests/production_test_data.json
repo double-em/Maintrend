@@ -1,0 +1,47 @@
+[
+    {
+        "pointid": "1",
+        "timestamp": "2020-01-01 12:15:00",
+        "value": "0"
+    },
+    {
+        "pointid": "2",
+        "timestamp": "2020-01-02 10:45:00",
+        "value": "0"
+    },
+    {
+        "pointid": "3",
+        "timestamp": "2020-01-03 14:15:00",
+        "value": "1000"
+    },
+    {
+        "pointid": "4",
+        "timestamp": "2020-01-03 14:30:00",
+        "value": "1000"
+    },
+    {
+        "pointid": "5",
+        "timestamp": "2020-01-04 08:15:00",
+        "value": "0"
+    },
+    {
+        "pointid": "6",
+        "timestamp": "2020-01-05 09:15:00",
+        "value": "1000"
+    },
+    {
+        "pointid": "7",
+        "timestamp": "2020-01-05 10:15:00",
+        "value": "9000"
+    },
+    {
+        "pointid": "8",
+        "timestamp": "2020-01-06 16:45:00",
+        "value": "-100"
+    },
+    {
+        "pointid": "9",
+        "timestamp": "2020-01-07 06:30:00",
+        "value": "1000"
+    }
+]
