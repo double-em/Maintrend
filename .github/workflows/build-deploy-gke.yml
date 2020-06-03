@@ -42,13 +42,26 @@ jobs:
           --build-arg GITHUB_REF="$GITHUB_REF" \
           --file serving-api/Dockerfile .
            
-    - name: Publish
+    - name: Publish to GCR
       run: |
         docker push $REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE:$GITHUB_SHA
 
-    - name: Deploy
+    - name: Deploy to GKE
       run: |
         gcloud container clusters get-credentials $GKE_CLUSTER --zone $GKE_ZONE --project $GKE_PROJECT
         kubectl set image deployment/$DEPLOYMENT_NAME *=$REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE:$GITHUB_SHA
         kubectl rollout status deployment/$DEPLOYMENT_NAME
         kubectl get services -o wide
+    
+    - name: Log into GitHub registry
+      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
+
+    - name: Publish to GitHub Packages
+      run: |
+        IMAGE_ID=docker.pkg.github.com/${{ github.repository }}/$IMAGE
+
+        # Uppercase to lowercase
+        IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+
+        docker tag $REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE:$GITHUB_SHA $IMAGE_ID:$GITHUB_SHA
+        docker push $IMAGE_ID:$GITHUB_SHA
