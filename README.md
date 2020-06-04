@@ -7,4 +7,4 @@
 
 Maintrend is a maintenance date predictor developed as a school project for my Computer Science test.
 
-The predictor uses a RNN architecture with LSTM cells. The mean absolute loss for never before seen data is around 0.3 days with a maximum absolute loss at around 0.8 days.
+The predictor uses a RNN architecture with LSTM cells. The mean absolute loss for never before seen data is around 0.3 days with a maximum absolute loss at around 3 days.
