@@ -108,33 +108,33 @@ def product_produced_transformer(json_data):
 
 
 # Calculate days to next maintenance
-def last_main(dataset):
-    dataset = dataset[::-1]
+def last_main(df):
+    df.sort_index(inplace=True, ascending=False)
     first_main = True
     last_m = 0
     remove = []
-    for i in range(len(dataset)):
+    for i in range(len(df.index)):
 
         if first_main:
-            if dataset[i][4] == 1:
+            if df['maintenance_day'][i] == 1:
                 first_main = False
-                last_m = dataset[i][0]
-                dataset[i][0] = 0
+                last_m = df['days_to_maintenance'][i]
+                df['days_to_maintenance'][i] = 0
             else:
-                remove.append(i)
+                remove.append(df.index[i])
 
         else:
-            if dataset[i][4] == 1:
-                last_m = dataset[i][0]
-                dataset[i][0] = 0
+            if df['maintenance_day'][i] == 1:
+                last_m = df['days_to_maintenance'][i]
+                df['days_to_maintenance'][i] = 0
             else:
-                dataset[i][0] = int((((last_m - dataset[i][0])/60)/60)/24)
+                df['days_to_maintenance'][i] = int((((last_m - df['days_to_maintenance'][i])/60)/60)/24)
         
         i += 1
 
-    dataset = np.delete(dataset, remove, axis=0)
+    df.drop(remove, inplace=True)
 
-    return dataset[::-1]
+    return df.sort_index()
 
 
 
@@ -167,7 +167,10 @@ def apicallv3(req_url, apikey, start, end, predictor_call=False, raw_data=False)
     df = df.merge(dfP, how='outer', on='timestamp')
     df = df.merge(dfComments, how='outer', on='timestamp')
     df['comment'] = df['comment'].mask(df['comment'] > 0).fillna(1)
-    df['timestamp'] = df['timestamp'].astype(int) / 10**9
+    df['days_to_maintenance'] = df['timestamp'].astype(int) / 10**9
+    df.rename(columns={'comment':'maintenance_day'}, inplace=True)
+    df.set_index('timestamp', inplace=True)
+    df.sort_index()
 
     scaler = MinMaxScaler(feature_range=(0,1))
 
@@ -177,28 +180,23 @@ def apicallv3(req_url, apikey, start, end, predictor_call=False, raw_data=False)
     if df.isna().sum().sum() > 0:
         logger.warning(f"Data contains {df.isna().sum().sum()} NaN values after midnight fill")
     
-    data_arr = df.values
+    # data_arr = df.values
 
     # Remove the first days where they havent logged much maintenance
     # NOTE: Helped alot!
     if not predictor_call:
         first_index = 0
-        for i in range(len(data_arr)):
-            if data_arr[i][4] == 1:
+        for i in range(len(df.index)):
+            if df['maintenance_day'][i] == 1:
                 break
             first_index += 1
-        newdata = last_main(data_arr[first_index:])
-    else:
-        newdata = data_arr
+        df = last_main(df[first_index:])
 
     if not raw_data:
-        newdata[:,1:-1] = scaler.fit_transform(newdata[:,1:-1])
+        df[['downtime', 'times_down', 'produced']] = scaler.fit_transform(df[['downtime', 'times_down', 'produced']])
 
     if predictor_call:
-        df = pd.DataFrame(newdata).drop(columns=[0])
-    else:
-        df = pd.DataFrame(newdata, columns=df.columns)
-        df = df.rename(columns={'timestamp':'days_to_maintenance', 'comment':'maintenance'})
+        df.drop(columns=['days_to_maintenance'], inplace=True)        
 
     if df.isna().sum().sum() > 0:
         logger.warning(f"Final dataset contains {df.isna().sum().sum()} NaN values")

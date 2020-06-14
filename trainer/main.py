@@ -35,7 +35,7 @@ _target_size = 1 # How many to predict
 
 build_mode = True
 test_mode = True
-save_mode = True
+save_mode = False
 
 
 
@@ -75,7 +75,7 @@ dataset = tf.data.Dataset.from_tensor_slices(train.values)
 dataset = dataset.map(lambda row: tf.cast(row, 'float32'))
 dataset = dataset.window(_history_size, shift=1, drop_remainder=True)
 dataset = dataset.flat_map(lambda window: window.batch(_history_size))
-dataset = dataset.map(lambda window: (window[:,1:], window[-1,0]))
+dataset = dataset.map(lambda window: (window[:,:-1], window[-1,-1]))
 
 if list(dataset.as_numpy_iterator())[-1][1] != 0:
     trainer_logger.warning("Potential error in dataset at last data entity")

@@ -55,6 +55,34 @@ def test_api_predict(use_api_url, use_api_channel, use_api_f, use_api_key):
     dh.PrintFinal(differ)
     assert pred_amount > 0
 
+# class NumpyArrayEncoder(JSONEncoder):
+#     def default(self, obj):
+#         if isinstance(obj, np.ndarray):
+#             return obj.tolist()
+#         return JSONEncoder.default(self, obj)
+
+# tcx = [[]]
+# tcx[0] = df.values
+
+# #print(tcx)
+
+# data = json.dumps({"signature_name":"serving_default", "instances":tcx}, cls=NumpyArrayEncoder)
+# #print(f"Data: {data}")
+# headers = {"content-type":"application/json"}
+
+# json_response = requests.post("http://172.22.0.2:8501/v1/models/predictor:predict", data=data, headers=headers)
+# print(f"Json text: {json_response.text}")
+# predictions = json.loads(json_response.text)['predictions']
+
+# single_prediction = round(float(predictions[0][0]))
+
+# date = datetime.datetime.now() + datetime.timedelta(single_prediction)
+# date = date.date()
+
+# print(date)
+
+# print(single_prediction)
+
 ### Links
 # https://www.tensorflow.org/tfx/tutorials/serving/rest_simple#make_a_request_to_your_model_in_tensorflow_serving
 # https://www.tensorflow.org/tfx/serving/docker
