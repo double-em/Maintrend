@@ -132,3 +132,4 @@ container-data/
 trainer/util
 trainer/models
 trainer/logs
+pythonenv*/
