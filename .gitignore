@@ -133,3 +133,4 @@ trainer/util
 trainer/models
 trainer/logs
 pythonenv*/
+.idea/
